@@ -9,7 +9,7 @@ client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 class OCR:    
     def __init__(self):
-        self.path = r"C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
+        self.path = r"/usr/bin/tesseract"
     
     def extract(self, filename): 
         try:
