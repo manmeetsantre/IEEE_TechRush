@@ -12,9 +12,8 @@ from pypdf import PdfReader
 load_dotenv()
 
 app = Flask(__name__, template_folder='templates')
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-gemini_model = genai.GenerativeModel('gemini-1.5-flash')
+client_summary = Groq(api_key=os.getenv("GROQ_API_KEY_SUMMARY"))
+client_mcq = Groq(api_key=os.getenv("GROQ_API_KEY_MCQ"))
 
 @app.route('/', methods=['POST', 'GET'])
 def home():
@@ -39,18 +38,18 @@ def home():
             return jsonify({"error": "No text extracted from PDF"}), 400
         
         summary_start = time.time()
-        summary = extractive_summary(text)
+        summarized_text = summary(text)
         summary_time = time.time() - summary_start
         
         mcq_start = time.time()
-        mcqs = generate_mcqs(summary, count=count, difficulty=difficulty, 
+        mcqs = generate_mcqs(text, count=count, difficulty=difficulty, 
                              chapter=chapter, topic=topic)
         mcq_time = time.time() - mcq_start
         
         total_time = time.time() - start_time
         
         return jsonify({
-            "summary": summary,
+            "summary": summarized_text,
             "mcqs": mcqs,
             "metadata": {
                 "chapter": chapter,
@@ -93,15 +92,15 @@ def extract_text_from_pdf(pdf_file):
 
 import io
 
-def extractive_summary(text):
-    response = client.chat.completions.create(
+def summary(text):
+    response_summary = client_summary.chat.completions.create(
         model="llama3-8b-8192",
         messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": f"Please create the extractive summary for following text: {text} directly begin with summary, keep important events, and keywords for creating mcqs later"}
+            {"role": "system", "content": "You are a content summarizer."},
+            {"role": "user", "content": f"Please create the summary for following text: {text} directly begin with summary, keep important events, and keywords for creating mcqs later"}
         ]
     )
-    return response.choices[0].message.content[:3000]  # Limit to prevent token overload
+    return response_summary.choices[0].message.content[:3000]  # Limit to prevent token overload
 
 def generate_mcqs(text, count, difficulty, chapter, topic):
     total_mcqs = ""
@@ -138,37 +137,16 @@ Difficulty: [Rating]
 Chapter: [Chapter]
 """
 
-        try:
-            response = gemini_model.generate_content(prompt)
-            total_mcqs += response.text + "\n\n"
-        except Exception as e:
-            print(f"[ERROR] Gemini failed: {e}")
-            total_mcqs += f"\n[ERROR generating batch {i+1}-{i+batch_count}]: {str(e)}\n"
 
-    return total_mcqs.strip()
+        response_mcqs = client_mcq.chat.completions.create(
+        model="llama3-8b-8192",
+        messages=[
+            {"role": "system", "content": "You are a mcq generator"},
+            {"role": "user", "content": prompt}
+        ]
+    )
+    return response_mcqs.choices[0].message.content[:3000]  
 
-@app.route('/network-test')
-def network_test():
-    test_urls = {
-        "Google Generative AI": "https://generativelanguage.googleapis.com",
-        "Tesseract OCR": "https://github.com/tesseract-ocr/tesseract",
-    }
-    
-    results = {}
-    for service, url in test_urls.items():
-        try:
-            response = requests.get(url, timeout=5)
-            results[service] = {
-                "status": "success" if response.status_code == 200 else f"HTTP {response.status_code}",
-                "url": url
-            }
-        except Exception as e:
-            results[service] = {
-                "status": "error",
-                "error": str(e),
-                "url": url
-            }
-    return jsonify(results)
 
 if __name__ == '__main__':
     app.run(debug=True)
