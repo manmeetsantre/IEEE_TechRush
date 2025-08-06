@@ -4,10 +4,10 @@ from dotenv import load_dotenv
 import os
 from pdf2image import convert_from_bytes
 import time
-import google.generativeai as genai
 import requests  
 from groq import Groq
 from pypdf import PdfReader
+import io
 
 load_dotenv()
 
@@ -88,8 +88,6 @@ def extract_text_from_pdf(pdf_file):
         text += pytesseract.image_to_string(image)
     return text, "ocr"
 
-import io
-
 def summary(text):
     response_summary = client_summary.chat.completions.create(
         model="llama3-8b-8192",
@@ -101,58 +99,37 @@ def summary(text):
     return response_summary.choices[0].message.content[:5000]  # Limit to prevent token overload
 
 def generate_mcqs(text, count, difficulty, chapter, topic):
-    total_mcqs = ""
     batch_size = 10  # safer to chunk in batches
     final_response = ""
     for i in range(0, count, batch_size):
         print("[INFO] Generating MCQs batch:", i + 1)
         batch_count = min(batch_size, count - i)
-        prompt = f"""Create {batch_count} multiple choice questions based on this summary:\n\n{text}
-
-        {{
-  "question": "[Question text]",
-  "options": {{
-    "A": "[Option A]",
-    "B": "[Option B]",
-    "C": "[Option C]",
-    "D": "[Option D]"
-  }},
-  "correct_answer": "[Letter]",
-  "explanation": "[Explanation]",
-  "topic": "[Topic]"
-}}
-        also frame all the mcqs json inside a list, every element corresponds to one mcq
-
-        Requirements:
-        - Difficulty: {difficulty}
-        - Chapter: {chapter}
-        - Each question must have:
-        * Clear question stem
-        * 4 options (A-D)
-        * Correct answer (specify letter)
-        * Concise explanation
-        * Difficulty rating
-        * Topic tag
-        * Chapter reference
-        * No question should have question number anywhere
-        * Begin directly with question stem, no preamble ( explaination earlier), directly 
-        begin with the questions format
-
-        {{
-  "question": "[Question text]",
-  "options": {{
-    "A": "[Option A]",
-    "B": "[Option B]",
-    "C": "[Option C]",
-    "D": "[Option D]"
+        prompt = f"""
+Create {batch_count} multiple choice questions based on this summary:\n\n{text}
+Requirements:
+- difficulty: {difficulty}
+- chapter: {chapter}
+- topic: {topic}
+- each question must have:
+  * clear question stem
+  * 4 options (a-d)
+  * correct answer (specify letter)
+  * concise explanation
+  * difficulty rating
+  * topic tag
+  * chapter reference
+- the format must be in json, as specified below:
+[
+    {{
+        "question": "question here",
+        "options": ["option1", "option2", "option3", "option4"],
+        "correctAnswer": "option which is correct",
+        "explanation": "explanation why correctAnswer is correct",
+        "topic": "relevant topic that the question belongs to"
     }},
-  "correct_answer": "[Letter]",
-  "explanation": "[Explanation]",
-  "topic": "[Category of the question, dont make everything unique, basically i want to use it for topic tagging and sort questions gererated depending upon the topic or category ]"
-
-  Nothing after this, just end with this format, no extra text, no preamble, just the question and options, correct answer and explanation, topic and difficulty and chapter reference, nothing else, just this format, no extra text, no preamble, just the question and options, correct answer and explanation, topic and difficulty and chapter reference, nothing else, just this format, no extra text, no preamble, just the question and options, correct answer and explanation, topic and difficulty and chapter reference, nothing else, just this format
-        }}
-        """
+    ...
+]
+PLEASE PLEASE PLEASE MAKE IT IN JSON ONLY. DO NOT GIVE ANY EXTRA TEXT IN THE BEGINNING OR IN THE END. I HAVE TO PARSE THE JSON THAT IS GIVEN BY YOU FURTHER. SO PLEASE ONLY GIVE JSON. PLEASE GIVE JSON ONLY. GIVE JSON FORMAT ONLY. DO NOT WRITE ANYTHING ELSE. DO NOT PUT NEWLINES OR ANYTHING WHICH IS NOT IN JSON FORMAT."""
 
         response_mcqs = client_mcq.chat.completions.create(
         model="llama3-8b-8192",
@@ -160,8 +137,8 @@ def generate_mcqs(text, count, difficulty, chapter, topic):
             {"role": "system", "content": "You are a mcq generator"},
             {"role": "user", "content": prompt}
         ])
-        final_response += response_mcqs.choices[0].message.content + "\n\n"
-    return final_response  
+        final_response += response_mcqs.choices[0].message.content
+    return final_response
 
 
 if __name__ == '__main__':
