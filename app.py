@@ -101,11 +101,11 @@ def extractive_summary(text):
             {"role": "user", "content": f"Please create the extractive summary for following text: {text} directly begin with summary, keep important events, and keywords for creating mcqs later"}
         ]
     )
-    return response.choices[0].message.content[:3000]  
+    return response.choices[0].message.content[:3000]  # Limit to prevent token overload
 
 def generate_mcqs(text, count, difficulty, chapter, topic):
     total_mcqs = ""
-    batch_size = 10 
+    batch_size = 10  # safer to chunk in batches
 
     for i in range(0, count, batch_size):
         batch_count = min(batch_size, count - i)
@@ -171,5 +171,4 @@ def network_test():
     return jsonify(results)
 
 if __name__ == '__main__':
-    pytesseract.tesseract_cmd = r'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
     app.run(debug=True)
