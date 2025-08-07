@@ -90,7 +90,7 @@
   `;
 
   // Summary
-  document.getElementById('summaryText').textContent = data.summary;
+  document.getElementById('summaryText').innerHTML = data.summary;
 
   // MCQs
   const mcqContainer = document.getElementById('mcqContent');
