@@ -111,13 +111,13 @@
   mcqs.forEach((mcq) => {
     const card = document.createElement("div");
     card.className = "mcq-card";
-
+    console.log(mcq);
     card.innerHTML = `
       <div class="mcq-question">Q: ${mcq.question}</div>
       <ul class="mcq-options">
         ${mcq.options.map(opt => `<li>${opt}</li>`).join('')}
       </ul>
-      <div class="mcq-answer">✅ ${mcq.answer}</div>
+      <div class="mcq-answer">✅ ${mcq.options[mcq.correctAnswer.charCodeAt(0)-97]}</div>
     `;
 
     card.addEventListener("click", () => {
