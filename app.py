@@ -5,15 +5,18 @@ import os
 from pdf2image import convert_from_bytes
 import time
 import requests  
-from groq import Groq
+#from groq import Groq
+import google.generativeai as genai
 from pypdf import PdfReader
 import io
 
 load_dotenv()
 
 app = Flask(__name__, template_folder='templates')
-client_summary = Groq(api_key=os.getenv("GROQ_API_KEY_SUMMARY"))
-client_mcq = Groq(api_key=os.getenv("GROQ_API_KEY_MCQ"))
+#client_summary = Groq(api_key=os.getenv("GROQ_API_KEY_SUMMARY"))
+#client_mcq = Groq(api_key=os.getenv("GROQ_API_KEY_MCQ"))
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+gemini_model = genai.GenerativeModel('gemini-2.0-flash')
 
 @app.route('/', methods=['POST', 'GET'])
 def home():
@@ -39,8 +42,7 @@ def home():
         summary_time = time.time() - summary_start
         
         mcq_start = time.time()
-        mcqs = generate_mcqs(text, count=count, difficulty=difficulty, 
-                             chapter=chapter)
+        mcqs = generate_mcqs(text, count=count, difficulty=difficulty, chapter=chapter)
         mcq_time = time.time() - mcq_start
         
         total_time = time.time() - start_time
@@ -80,24 +82,26 @@ def extract_text_from_pdf(pdf_file):
         print(f"[WARN] pypdf failed: {e}")
     
     print("[INFO] Falling back to OCR with pytesseract.")
-    images = convert_from_bytes(pdf_bytes)
+    images = convert_from_bytes(pdf_bytes, dpi=75, grayscale=True)
     text = ''
     for image in images:
         text += pytesseract.image_to_string(image)
     return text, "ocr"
 
 def summary(text):
-    response_summary = client_summary.chat.completions.create(
-        model="llama3-8b-8192",
-        messages=[
-            {"role": "system", "content": "You are a content summarizer."},
-            {"role": "user", "content": f"Please create the summary for following text: {text} directly begin with summary, keep important events, and keywords for creating mcqs later"}
-        ]
-    )
-    return response_summary.choices[0].message.content[:5000]  # Limit to prevent token overload
+    prompt = f"Please create the summary for following text: {text}.\nDirectly begin with summary. Make it readable by a common user, making the PDF simple to understand."
+    return gemini_model.generate_content(prompt).text
+    #response_summary = client_summary.chat.completions.create(
+    #    model="llama3-8b-8192",
+    #    messages=[
+    #        {"role": "system", "content": "You are a content summarizer."},
+    #        {"role": "user", "content": f"Please create the summary for following text: {text} directly begin with summary, keep important events, and keywords for creating mcqs later"}
+    #    ]
+    #)
+    #return response_summary.choices[0].message.content[:5000]  # Limit to prevent token overload
 
 def generate_mcqs(text, count, difficulty, chapter):
-    batch_size = 10  # safer to chunk in batches
+    batch_size = 100 # safer to chunk in batches
     final_response = ""
     for i in range(0, count, batch_size):
         print("[INFO] Generating MCQs batch:", i + 1)
@@ -109,8 +113,8 @@ Requirements:
 - chapter: {chapter}
 - each question must have:
   * clear question stem
-  * 4 options (a-d)
-  * correct answer (specify letter)
+  * 4 options
+  * correct answer (specify the option in full)
   * concise explanation
   * difficulty rating
   * topic tag
@@ -119,7 +123,7 @@ Requirements:
     {{
         "question": "question here",
         "options": ["option1", "option2", "option3", "option4"],
-        "correctAnswer": "option which is correct",
+        "correctAnswer": "full text of option which is correct",
         "explanation": "explanation why correctAnswer is correct",
         "topic": "relevant topic that the question belongs to"
     }},
@@ -127,13 +131,15 @@ Requirements:
 ]
 PLEASE PLEASE PLEASE MAKE IT IN JSON ONLY. DO NOT GIVE ANY EXTRA TEXT IN THE BEGINNING OR IN THE END. I HAVE TO PARSE THE JSON THAT IS GIVEN BY YOU FURTHER. SO PLEASE ONLY GIVE JSON. PLEASE GIVE JSON ONLY. GIVE JSON FORMAT ONLY. DO NOT WRITE ANYTHING ELSE. DO NOT PUT NEWLINES OR ANYTHING WHICH IS NOT IN JSON FORMAT."""
 
-        response_mcqs = client_mcq.chat.completions.create(
-        model="llama3-8b-8192",
-        messages=[
-            {"role": "system", "content": "You are a mcq generator"},
-            {"role": "user", "content": prompt}
-        ])
-        final_response += response_mcqs.choices[0].message.content
+        #response_mcqs = client_mcq.chat.completions.create(
+        #model="llama3-70b-8192",
+        #messages=[
+        #    {"role": "system", "content": "You are a mcq generator"},
+        #    {"role": "user", "content": prompt}
+        #])
+        #final_response += response_mcqs.choices[0].message.content
+        response_mcqs = gemini_model.generate_content(contents=prompt, generation_config={'response_mime_type': 'application/json'})
+        final_response += response_mcqs.text
     return final_response
 
 

@@ -108,6 +108,7 @@
   }
 
   mcqs.forEach((mcq) => {
+		 console.log(mcq);
     const card = document.createElement("div");
     card.className = "mcq-card";
 console.log(mcq);
@@ -116,7 +117,7 @@ console.log(mcq);
       <ul class="mcq-options">
         ${mcq.options.map(opt => `<li>${opt}</li>`).join('')}
       </ul>
-      <div class="mcq-answer">✅ ${mcq.options[mcq.correctAnswer.charCodeAt(0)-97]}</div>
+      <div class="mcq-answer">✅ ${mcq.correctAnswer}</div>
     `;
 
     card.addEventListener("click", () => {
