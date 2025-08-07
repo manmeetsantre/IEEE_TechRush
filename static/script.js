@@ -108,10 +108,16 @@
   }
 
   mcqs.forEach((mcq) => {
-		 console.log(mcq);
+    console.log(mcq);
+    if (!window.localStorage.getItem("questionBank"))
+	window.localStorage.setItem("questionBank", JSON.stringify([mcq]));
+    else {
+        let questionBank = JSON.parse(window.localStorage.getItem("questionBank"));
+        questionBank.push(mcq);
+        window.localStorage.setItem("questionBank", JSON.stringify(questionBank));
+    }
     const card = document.createElement("div");
     card.className = "mcq-card";
-console.log(mcq);
     card.innerHTML = `
       <div class="mcq-question">Q: ${mcq.question}</div>
       <ul class="mcq-options">
