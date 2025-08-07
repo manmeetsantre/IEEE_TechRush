@@ -437,13 +437,8 @@
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="chapter">Chapter</label>
-                        <input type="text" id="chapter" name="chapter" value="General" placeholder="Enter chapter name">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="topic">Topic</label>
-                        <input type="text" id="topic" name="topic" value="General" placeholder="Enter topic name">
+                        <label for="chapter">Chapter(s)</label>
+                        <input type="text" id="chapter" name="chapter" value="All" placeholder="Enter chapter name(s)">
                     </div>
                 </div>
 
@@ -503,7 +498,6 @@
             const questionCount = document.getElementById('question_count').value;
             const difficulty = document.getElementById('difficulty').value;
             const chapter = document.getElementById('chapter').value;
-            const topic = document.getElementById('topic').value;
 
             if (!pdfFile) {
                 showError('Please select a PDF file');
@@ -514,7 +508,6 @@
             formData.append('question_count', questionCount);
             formData.append('difficulty', difficulty);
             formData.append('chapter', chapter);
-            formData.append('topic', topic);
 
             // Show loading state
             document.getElementById('loading').style.display = 'block';
@@ -554,12 +547,8 @@
             const timing = data.timing;
             document.getElementById('metadata').innerHTML = `
                 <div class="metadata-item">
-                    <div class="metadata-label">Chapter</div>
+                    <div class="metadata-label">Chapter(s)</div>
                     <div class="metadata-value">${metadata.chapter}</div>
-                </div>
-                <div class="metadata-item">
-                    <div class="metadata-label">Topic</div>
-                    <div class="metadata-value">${metadata.topic}</div>
                 </div>
                 <div class="metadata-item">
                     <div class="metadata-label">Difficulty</div>
@@ -591,8 +580,7 @@
         function setupDownload(data) {
             document.getElementById('downloadBtn').onclick = function() {
                 const content = `MCQ Generator Results
-Chapter: ${data.metadata.chapter}
-Topic: ${data.metadata.topic}
+Chapter(s): ${data.metadata.chapter}
 Difficulty: ${data.metadata.difficulty}
 Number of Questions: ${data.metadata.question_count}
 Generated on: ${new Date().toLocaleString()}
@@ -611,7 +599,7 @@ Processing Time: ${data.timing.total_time}
                 const a = document.createElement('a');
                 a.style.display = 'none';
                 a.href = url;
-                a.download = `mcq_${data.metadata.chapter}_${data.metadata.topic}_${new Date().toISOString().split('T')[0]}.txt`;
+                a.download = `mcq_${data.metadata.chapter}_${new Date().toISOString().split('T')[0]}.txt`;
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);

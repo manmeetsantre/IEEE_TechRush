@@ -23,7 +23,6 @@ def home():
         count = int(request.form.get('question_count', 5))
         difficulty = request.form.get('difficulty', 'medium')
         chapter = request.form.get('chapter', 'General')
-        topic = request.form.get('topic', 'General')
         
         if not pdf_file:
             return jsonify({"error": "No PDF file provided"}), 400
@@ -41,7 +40,7 @@ def home():
         
         mcq_start = time.time()
         mcqs = generate_mcqs(text, count=count, difficulty=difficulty, 
-                             chapter=chapter, topic=topic)
+                             chapter=chapter)
         mcq_time = time.time() - mcq_start
         
         total_time = time.time() - start_time
@@ -51,7 +50,6 @@ def home():
             "mcqs": mcqs,
             "metadata": {
                 "chapter": chapter,
-                "topic": topic,
                 "difficulty": difficulty,
                 "question_count": count,
                 "extraction_method": method
@@ -98,7 +96,7 @@ def summary(text):
     )
     return response_summary.choices[0].message.content[:5000]  # Limit to prevent token overload
 
-def generate_mcqs(text, count, difficulty, chapter, topic):
+def generate_mcqs(text, count, difficulty, chapter):
     batch_size = 10  # safer to chunk in batches
     final_response = ""
     for i in range(0, count, batch_size):
@@ -109,7 +107,6 @@ Create {batch_count} multiple choice questions based on this summary:\n\n{text}
 Requirements:
 - difficulty: {difficulty}
 - chapter: {chapter}
-- topic: {topic}
 - each question must have:
   * clear question stem
   * 4 options (a-d)
