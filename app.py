@@ -21,8 +21,8 @@ def home():
         start_time = time.time()
         pdf_file = request.files.get('pdf_file')
         count = int(request.form.get('question_count', 5))
-        difficulty = request.form.get('difficulty', 'medium')
-        chapter = request.form.get('chapter', 'General')
+        difficulty = request.form.get('difficulty', 'Medium')
+        chapter = request.form.get('chapter', 'All')
         
         if not pdf_file:
             return jsonify({"error": "No PDF file provided"}), 400
@@ -114,7 +114,6 @@ Requirements:
   * concise explanation
   * difficulty rating
   * topic tag
-  * chapter reference
 - the format must be in json, as specified below:
 [
     {{
