@@ -392,3 +392,59 @@
                 margin: 15px auto 0;
             }
         }
+/* MCQ CARD STYLES */
+.mcq-content {
+  margin-top: 30px;
+  display: grid;
+  gap: 30px;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.mcq-card {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  padding: 20px;
+  transition: transform 0.3s ease, background 0.3s ease;
+  position: relative;
+  cursor: pointer;
+}
+
+.dark-mode .mcq-card {
+  background: rgba(40, 40, 40, 0.9);
+  color: #eee;
+  box-shadow: 0 10px 25px rgba(255, 255, 255, 0.05);
+}
+
+.mcq-card:hover {
+  transform: translateY(-5px);
+}
+
+.mcq-question {
+  font-weight: 600;
+  margin-bottom: 16px;
+  font-size: 1.1rem;
+}
+
+.mcq-options {
+  padding-left: 20px;
+}
+
+.mcq-options li {
+  margin-bottom: 6px;
+  color: inherit;
+}
+
+.mcq-answer {
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 10px;
+  background: linear-gradient(45deg, #6a11cb, #2575fc);
+  color: white;
+  font-weight: bold;
+  display: none;
+}
+
+.mcq-card.revealed .mcq-answer {
+  display: block;
+}

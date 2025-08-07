@@ -58,7 +58,7 @@
                 }
             } catch (error) {
                 showError('Network error: Please check if the backend server is running');
-                console.error('Error:', error);
+                console.log('Error:', error);
             } finally {
                 // Hide loading state
                 document.getElementById('loading').style.display = 'none';
@@ -68,40 +68,72 @@
         });
 
         function displayResults(data) {
-            // Display metadata
-            const metadata = data.metadata;
-            const timing = data.timing;
-            document.getElementById('metadata').innerHTML = `
-                <div class="metadata-item">
-                    <div class="metadata-label">Chapter(s)</div>
-                    <div class="metadata-value">${metadata.chapter}</div>
-                </div>
-                <div class="metadata-item">
-                    <div class="metadata-label">Difficulty</div>
-                    <div class="metadata-value">${metadata.difficulty}</div>
-                </div>
-                <div class="metadata-item">
-                    <div class="metadata-label">Questions</div>
-                    <div class="metadata-value">${metadata.question_count}</div>
-                </div>
-                <div class="metadata-item">
-                    <div class="metadata-label">Total Time</div>
-                    <div class="metadata-value">${timing.total_time}</div>
-                </div>
-            `;
+  // Metadata
+  const metadata = data.metadata;
+  const timing = data.timing;
+  document.getElementById('metadata').innerHTML = `
+    <div class="metadata-item">
+        <div class="metadata-label">Chapter(s)</div>
+        <div class="metadata-value">${metadata.chapter}</div>
+    </div>
+    <div class="metadata-item">
+        <div class="metadata-label">Difficulty</div>
+        <div class="metadata-value">${metadata.difficulty}</div>
+    </div>
+    <div class="metadata-item">
+        <div class="metadata-label">Questions</div>
+        <div class="metadata-value">${metadata.question_count}</div>
+    </div>
+    <div class="metadata-item">
+        <div class="metadata-label">Total Time</div>
+        <div class="metadata-value">${timing.total_time}</div>
+    </div>
+  `;
 
-            // Display summary
-            document.getElementById('summaryText').textContent = data.summary;
+  // Summary
+  document.getElementById('summaryText').textContent = data.summary;
 
-            // Display MCQs
-            document.getElementById('mcqContent').textContent = data.mcqs;
+  // MCQs
+  const mcqContainer = document.getElementById('mcqContent');
+  mcqContainer.innerHTML = "";
 
-            // Show results
-            document.getElementById('results').style.display = 'block';
+  let mcqs = data.mcqs;
 
-            // Setup download functionality
-            setupDownload(data);
-        }
+  if (typeof mcqs === "string") {
+    try {
+      mcqs = JSON.parse(mcqs);
+    } catch (e) {
+      mcqContainer.innerHTML = "<p>Error parsing MCQs.</p>";
+      return;
+    }
+  }
+
+  mcqs.forEach((mcq) => {
+    const card = document.createElement("div");
+    card.className = "mcq-card";
+
+    card.innerHTML = `
+      <div class="mcq-question">Q: ${mcq.question}</div>
+      <ul class="mcq-options">
+        ${mcq.options.map(opt => `<li>${opt}</li>`).join('')}
+      </ul>
+      <div class="mcq-answer">✅ ${mcq.answer}</div>
+    `;
+
+    card.addEventListener("click", () => {
+      card.classList.toggle("revealed");
+    });
+
+    mcqContainer.appendChild(card);
+  });
+
+  // Show result section
+  document.getElementById('results').style.display = 'block';
+
+  // Download support
+  setupDownload(data);
+}
+
 
         function setupDownload(data) {
             document.getElementById('downloadBtn').onclick = function() {
