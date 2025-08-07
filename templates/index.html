@@ -5,6 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MCQ Generator</title>
     <style>
+        /* Theme Variables */
+        :root {
+            --bg-gradient-start: #667eea;
+            --bg-gradient-end: #764ba2;
+            --container-bg: rgba(255, 255, 255, 0.95);
+            --text-color: #333;
+            --header-gradient-start: #4facfe;
+            --header-gradient-end: #00f2fe;
+            --header-text: white;
+            --input-bg: white;
+            --input-border: #e1e5e9;
+            --card-bg: white;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --label-color: #333;
+        }
+
+        [data-theme="dark"] {
+            --bg-gradient-start: #2c3e50;
+            --bg-gradient-end: #1a1a2e;
+            --container-bg: rgba(30, 30, 30, 0.95);
+            --text-color: #f5f5f5;
+            --header-gradient-start: #1a2980;
+            --header-gradient-end: #26d0ce;
+            --header-text: white;
+            --input-bg: #2d2d2d;
+            --input-border: #444;
+            --card-bg: #1e1e1e;
+            --shadow-color: rgba(0, 0, 0, 0.3);
+            --label-color: #f5f5f5;
+        }
+
+        /* Base Styles */
         * {
             margin: 0;
             padding: 0;
@@ -13,18 +45,19 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 20px;
+            color: var(--text-color);
         }
 
         .container {
-            background: rgba(255, 255, 255, 0.95);
+            background: var(--container-bg);
             border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 20px 40px var(--shadow-color);
             max-width: 800px;
             width: 100%;
             overflow: hidden;
@@ -32,10 +65,11 @@
         }
 
         .header {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            color: white;
+            background: linear-gradient(135deg, var(--header-gradient-start) 0%, var(--header-gradient-end) 100%);
+            color: var(--header-text);
             padding: 30px;
             text-align: center;
+            position: relative;
         }
 
         .header h1 {
@@ -49,6 +83,57 @@
             opacity: 0.9;
         }
 
+        /* Theme Toggle Styles */
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #theme-switch {
+            display: none;
+        }
+
+        .theme-slider {
+            width: 50px;
+            height: 24px;
+            background: #ccc;
+            border-radius: 12px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .theme-slider:before {
+            content: "";
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: white;
+            top: 3px;
+            left: 3px;
+            transition: all 0.3s;
+        }
+
+        #theme-switch:checked + .theme-slider {
+            background: #2196F3;
+        }
+
+        #theme-switch:checked + .theme-slider:before {
+            transform: translateX(26px);
+        }
+
+        .theme-text {
+            font-size: 14px;
+            color: var(--header-text);
+            opacity: 0.9;
+        }
+
+        /* Content Styles */
         .content {
             padding: 40px;
         }
@@ -61,7 +146,7 @@
             display: block;
             margin-bottom: 8px;
             font-weight: 600;
-            color: #333;
+            color: var(--label-color);
             font-size: 14px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -70,31 +155,37 @@
         input[type="file"] {
             width: 100%;
             padding: 12px;
-            border: 2px dashed #4facfe;
+            border: 2px dashed var(--header-gradient-start);
             border-radius: 10px;
-            background: #f8f9ff;
+            background: var(--input-bg);
             cursor: pointer;
             transition: all 0.3s ease;
+            color: var(--text-color);
         }
 
         input[type="file"]:hover {
-            background: #e8f0ff;
-            border-color: #667eea;
+            background: var(--card-bg);
+            border-color: var(--bg-gradient-start);
         }
 
-        input[type="number"], input[type="text"], select {
+        input[type="number"], 
+        input[type="text"], 
+        select {
             width: 100%;
             padding: 15px;
-            border: 2px solid #e1e5e9;
+            border: 2px solid var(--input-border);
             border-radius: 10px;
             font-size: 16px;
             transition: all 0.3s ease;
-            background: white;
+            background: var(--input-bg);
+            color: var(--text-color);
         }
 
-        input[type="number"]:focus, input[type="text"]:focus, select:focus {
+        input[type="number"]:focus, 
+        input[type="text"]:focus, 
+        select:focus {
             outline: none;
-            border-color: #4facfe;
+            border-color: var(--header-gradient-start);
             box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
         }
 
@@ -107,7 +198,7 @@
         .generate-btn {
             width: 100%;
             padding: 18px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
             color: white;
             border: none;
             border-radius: 12px;
@@ -130,6 +221,7 @@
             transform: none;
         }
 
+        /* Results Section */
         .loading {
             display: none;
             text-align: center;
@@ -140,7 +232,7 @@
             width: 50px;
             height: 50px;
             border: 4px solid #f3f3f3;
-            border-top: 4px solid #4facfe;
+            border-top: 4px solid var(--header-gradient-start);
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin: 0 auto 20px;
@@ -157,14 +249,14 @@
         }
 
         .summary-section {
-            background: #f8f9ff;
+            background: var(--card-bg);
             border-radius: 10px;
             padding: 25px;
             margin-bottom: 25px;
         }
 
         .summary-section h3 {
-            color: #333;
+            color: var(--text-color);
             margin-bottom: 15px;
             display: flex;
             align-items: center;
@@ -178,22 +270,22 @@
 
         .summary-text {
             line-height: 1.6;
-            color: #555;
-            background: white;
+            color: var(--text-color);
+            background: var(--card-bg);
             padding: 20px;
             border-radius: 8px;
-            border-left: 4px solid #4facfe;
+            border-left: 4px solid var(--header-gradient-start);
         }
 
         .mcq-section {
-            background: white;
+            background: var(--card-bg);
             border-radius: 10px;
             padding: 25px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 5px 15px var(--shadow-color);
         }
 
         .mcq-section h3 {
-            color: #333;
+            color: var(--text-color);
             margin-bottom: 20px;
             display: flex;
             align-items: center;
@@ -208,12 +300,12 @@
         .mcq-content {
             white-space: pre-wrap;
             line-height: 1.8;
-            color: #444;
+            color: var(--text-color);
             font-family: 'Courier New', monospace;
-            background: #f8f9ff;
+            background: var(--card-bg);
             padding: 20px;
             border-radius: 8px;
-            border: 1px solid #e1e5e9;
+            border: 1px solid var(--input-border);
         }
 
         .metadata {
@@ -229,14 +321,14 @@
         .metadata-item {
             text-align: center;
             padding: 10px;
-            background: white;
+            background: var(--card-bg);
             border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 2px 8px var(--shadow-color);
         }
 
         .metadata-label {
             font-size: 12px;
-            color: #666;
+            color: var(--text-color);
             text-transform: uppercase;
             margin-bottom: 5px;
             letter-spacing: 0.5px;
@@ -245,7 +337,7 @@
         .metadata-value {
             font-size: 16px;
             font-weight: 600;
-            color: #333;
+            color: var(--text-color);
         }
 
         .error {
@@ -304,6 +396,12 @@
             .metadata {
                 grid-template-columns: repeat(2, 1fr);
             }
+            
+            .theme-toggle {
+                position: static;
+                justify-content: center;
+                margin-top: 15px;
+            }
         }
     </style>
 </head>
@@ -312,6 +410,11 @@
         <div class="header">
             <h1>MCQ Generator</h1>
             <p>Upload a PDF and generate multiple choice questions automatically</p>
+            <div class="theme-toggle">
+                <input type="checkbox" id="theme-switch">
+                <label for="theme-switch" class="theme-slider"></label>
+                <span class="theme-text">Dark Mode</span>
+            </div>
         </div>
 
         <div class="content">
@@ -530,7 +633,34 @@ Processing Time: ${data.timing.total_time}
             if (fileName) {
                 const label = document.querySelector('label[for="pdf_file"]');
                 label.textContent = `PDF File - ${fileName}`;
-                label.style.color = '#4facfe';
+                label.style.color = 'var(--header-gradient-start)';
+            }
+        });
+
+        // Theme switching functionality
+        const themeSwitch = document.getElementById('theme-switch');
+        const themeText = document.querySelector('.theme-text');
+
+        // Check for saved theme preference
+        const currentTheme = localStorage.getItem('theme');
+        if (currentTheme) {
+            document.documentElement.setAttribute('data-theme', currentTheme);
+            if (currentTheme === 'dark') {
+                themeSwitch.checked = true;
+                themeText.textContent = 'Light Mode';
+            }
+        }
+
+        // Theme switch event listener
+        themeSwitch.addEventListener('change', function(e) {
+            if (e.target.checked) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+                themeText.textContent = 'Light Mode';
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+                localStorage.setItem('theme', 'light');
+                themeText.textContent = 'Dark Mode';
             }
         });
     </script>
