@@ -9,6 +9,7 @@ import requests
 import google.generativeai as genai
 from pypdf import PdfReader
 import io
+from markdown import markdown
 
 load_dotenv()
 
@@ -90,7 +91,8 @@ def extract_text_from_pdf(pdf_file):
 
 def summary(text):
     prompt = f"Please create the summary for following text: {text}.\nDirectly begin with summary. Make it readable by a common user, making the PDF simple to understand."
-    return gemini_model.generate_content(prompt).text
+    prompt_markdown = markdown(prompt)
+    return gemini_model.generate_content(prompt_markdown).text
     #response_summary = client_summary.chat.completions.create(
     #    model="llama3-8b-8192",
     #    messages=[
