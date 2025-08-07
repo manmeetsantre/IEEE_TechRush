@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCQ Generator</title>
+    <style>
+        /* Theme Variables */
+        :root {
+            --bg-gradient-start: #667eea;
+            --bg-gradient-end: #764ba2;
+            --container-bg: rgba(255, 255, 255, 0.95);
+            --text-color: #333;
+            --header-gradient-start: #4facfe;
+            --header-gradient-end: #00f2fe;
+            --header-text: white;
+            --input-bg: white;
+            --input-border: #e1e5e9;
+            --card-bg: white;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --label-color: #333;
+        }
+
+        [data-theme="dark"] {
+            --bg-gradient-start: #2c3e50;
+            --bg-gradient-end: #1a1a2e;
+            --container-bg: rgba(30, 30, 30, 0.95);
+            --text-color: #f5f5f5;
+            --header-gradient-start: #1a2980;
+            --header-gradient-end: #26d0ce;
+            --header-text: white;
+            --input-bg: #2d2d2d;
+            --input-border: #444;
+            --card-bg: #1e1e1e;
+            --shadow-color: rgba(0, 0, 0, 0.3);
+            --label-color: #f5f5f5;
+        }
+
+        /* Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: var(--text-color);
+        }
+
+        .container {
+            background: var(--container-bg);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px var(--shadow-color);
+            max-width: 800px;
+            width: 100%;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--header-gradient-start) 0%, var(--header-gradient-end) 100%);
+            color: var(--header-text);
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        /* Theme Toggle Styles */
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #theme-switch {
+            display: none;
+        }
+
+        .theme-slider {
+            width: 50px;
+            height: 24px;
+            background: #ccc;
+            border-radius: 12px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .theme-slider:before {
+            content: "";
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: white;
+            top: 3px;
+            left: 3px;
+            transition: all 0.3s;
+        }
+
+        #theme-switch:checked + .theme-slider {
+            background: #2196F3;
+        }
+
+        #theme-switch:checked + .theme-slider:before {
+            transform: translateX(26px);
+        }
+
+        .theme-text {
+            font-size: 14px;
+            color: var(--header-text);
+            opacity: 0.9;
+        }
+
+        /* Content Styles */
+        .content {
+            padding: 40px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--label-color);
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px dashed var(--header-gradient-start);
+            border-radius: 10px;
+            background: var(--input-bg);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--text-color);
+        }
+
+        input[type="file"]:hover {
+            background: var(--card-bg);
+            border-color: var(--bg-gradient-start);
+        }
+
+        input[type="number"], 
+        input[type="text"], 
+        select {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid var(--input-border);
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: var(--input-bg);
+            color: var(--text-color);
+        }
+
+        input[type="number"]:focus, 
+        input[type="text"]:focus, 
+        select:focus {
+            outline: none;
+            border-color: var(--header-gradient-start);
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .generate-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .generate-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .generate-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Results Section */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--header-gradient-start);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .summary-section {
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .summary-section h3 {
+            color: var(--text-color);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            font-size: 1.3rem;
+        }
+
+        .summary-section h3:before {
+            content: "📄";
+            margin-right: 10px;
+        }
+
+        .summary-text {
+            line-height: 1.6;
+            color: var(--text-color);
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid var(--header-gradient-start);
+        }
+
+        .mcq-section {
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 5px 15px var(--shadow-color);
+        }
+
+        .mcq-section h3 {
+            color: var(--text-color);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            font-size: 1.3rem;
+        }
+
+        .mcq-section h3:before {
+            content: "❓";
+            margin-right: 10px;
+        }
+
+        .mcq-content {
+            white-space: pre-wrap;
+            line-height: 1.8;
+            color: var(--text-color);
+            font-family: 'Courier New', monospace;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--input-border);
+        }
+
+        .metadata {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(79, 172, 254, 0.1), rgba(118, 75, 162, 0.1));
+            border-radius: 10px;
+        }
+
+        .metadata-item {
+            text-align: center;
+            padding: 10px;
+            background: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px var(--shadow-color);
+        }
+
+        .metadata-label {
+            font-size: 12px;
+            color: var(--text-color);
+            text-transform: uppercase;
+            margin-bottom: 5px;
+            letter-spacing: 0.5px;
+        }
+
+        .metadata-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #c33;
+            margin-top: 20px;
+        }
+
+        .success {
+            background: #efe;
+            color: #393;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #393;
+            margin-top: 20px;
+        }
+
+        .download-btn {
+            margin-top: 20px;
+            padding: 12px 24px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .download-btn:hover {
+            background: #218838;
+            transform: translateY(-1px);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .metadata {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .theme-toggle {
+                position: static;
+                justify-content: center;
+                margin-top: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>MCQ Generator</h1>
+            <p>Upload a PDF and generate multiple choice questions automatically</p>
+            <div class="theme-toggle">
+                <input type="checkbox" id="theme-switch">
+                <label for="theme-switch" class="theme-slider"></label>
+                <span class="theme-text">Dark Mode</span>
+            </div>
+        </div>
+
+        <div class="content">
+            <form id="mcqForm" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="pdf_file">PDF File</label>
+                    <input type="file" id="pdf_file" name="pdf_file" accept=".pdf" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="question_count">Number of Questions</label>
+                        <input type="number" id="question_count" name="question_count" min="1" max="20" value="5">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="difficulty">Difficulty Level</label>
+                        <select id="difficulty" name="difficulty">
+                            <option value="easy">Easy</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="hard">Hard</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="chapter">Chapter</label>
+                        <input type="text" id="chapter" name="chapter" value="General" placeholder="Enter chapter name">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="topic">Topic</label>
+                        <input type="text" id="topic" name="topic" value="General" placeholder="Enter topic name">
+                    </div>
+                </div>
+
+                <button type="submit" class="generate-btn" id="generateBtn">
+                    Generate MCQs
+                </button>
+            </form>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Processing your PDF and generating questions...</p>
+                <p><small>This may take a few moments</small></p>
+            </div>
+
+            <div class="results" id="results">
+                <div class="metadata" id="metadata"></div>
+                
+                <div class="summary-section">
+                    <h3>Summary</h3>
+                    <div class="summary-text" id="summaryText"></div>
+                </div>
+
+                <div class="mcq-section">
+                    <h3>Multiple Choice Questions</h3>
+                    <div class="mcq-content" id="mcqContent"></div>
+                    <button class="download-btn" id="downloadBtn">Download as Text File</button>
+                </div>
+            </div>
+
+            <div id="errorMsg"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('mcqForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            const pdfFile = document.getElementById('pdf_file').files[0];
+            const questionCount = document.getElementById('question_count').value;
+            const difficulty = document.getElementById('difficulty').value;
+            const chapter = document.getElementById('chapter').value;
+            const topic = document.getElementById('topic').value;
+
+            if (!pdfFile) {
+                showError('Please select a PDF file');
+                return;
+            }
+
+            formData.append('pdf_file', pdfFile);
+            formData.append('question_count', questionCount);
+            formData.append('difficulty', difficulty);
+            formData.append('chapter', chapter);
+            formData.append('topic', topic);
+
+            // Show loading state
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('generateBtn').disabled = true;
+            document.getElementById('generateBtn').textContent = 'Processing...';
+            clearMessages();
+
+            try {
+                const response = await fetch('/', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    displayResults(data);
+                    showSuccess('MCQs generated successfully!');
+                } else {
+                    showError(data.error || 'An error occurred while generating MCQs');
+                }
+            } catch (error) {
+                showError('Network error: Please check if the backend server is running');
+                console.error('Error:', error);
+            } finally {
+                // Hide loading state
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('generateBtn').disabled = false;
+                document.getElementById('generateBtn').textContent = 'Generate MCQs';
+            }
+        });
+
+        function displayResults(data) {
+            // Display metadata
+            const metadata = data.metadata;
+            const timing = data.timing;
+            document.getElementById('metadata').innerHTML = `
+                <div class="metadata-item">
+                    <div class="metadata-label">Chapter</div>
+                    <div class="metadata-value">${metadata.chapter}</div>
+                </div>
+                <div class="metadata-item">
+                    <div class="metadata-label">Topic</div>
+                    <div class="metadata-value">${metadata.topic}</div>
+                </div>
+                <div class="metadata-item">
+                    <div class="metadata-label">Difficulty</div>
+                    <div class="metadata-value">${metadata.difficulty}</div>
+                </div>
+                <div class="metadata-item">
+                    <div class="metadata-label">Questions</div>
+                    <div class="metadata-value">${metadata.question_count}</div>
+                </div>
+                <div class="metadata-item">
+                    <div class="metadata-label">Total Time</div>
+                    <div class="metadata-value">${timing.total_time}</div>
+                </div>
+            `;
+
+            // Display summary
+            document.getElementById('summaryText').textContent = data.summary;
+
+            // Display MCQs
+            document.getElementById('mcqContent').textContent = data.mcqs;
+
+            // Show results
+            document.getElementById('results').style.display = 'block';
+
+            // Setup download functionality
+            setupDownload(data);
+        }
+
+        function setupDownload(data) {
+            document.getElementById('downloadBtn').onclick = function() {
+                const content = `MCQ Generator Results
+Chapter: ${data.metadata.chapter}
+Topic: ${data.metadata.topic}
+Difficulty: ${data.metadata.difficulty}
+Number of Questions: ${data.metadata.question_count}
+Generated on: ${new Date().toLocaleString()}
+
+SUMMARY:
+${data.summary}
+
+MULTIPLE CHOICE QUESTIONS:
+${data.mcqs}
+
+Processing Time: ${data.timing.total_time}
+`;
+
+                const blob = new Blob([content], { type: 'text/plain' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = `mcq_${data.metadata.chapter}_${data.metadata.topic}_${new Date().toISOString().split('T')[0]}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            };
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMsg');
+            errorDiv.innerHTML = `<div class="error">${message}</div>`;
+            setTimeout(() => {
+                errorDiv.innerHTML = '';
+            }, 5000);
+        }
+
+        function showSuccess(message) {
+            const errorDiv = document.getElementById('errorMsg');
+            errorDiv.innerHTML = `<div class="success">${message}</div>`;
+            setTimeout(() => {
+                errorDiv.innerHTML = '';
+            }, 3000);
+        }
+
+        function clearMessages() {
+            document.getElementById('errorMsg').innerHTML = '';
+        }
+
+        // File input styling enhancement
+        document.getElementById('pdf_file').addEventListener('change', function(e) {
+            const fileName = e.target.files[0]?.name;
+            if (fileName) {
+                const label = document.querySelector('label[for="pdf_file"]');
+                label.textContent = `PDF File - ${fileName}`;
+                label.style.color = 'var(--header-gradient-start)';
+            }
+        });
+
+        // Theme switching functionality
+        const themeSwitch = document.getElementById('theme-switch');
+        const themeText = document.querySelector('.theme-text');
+
+        // Check for saved theme preference
+        const currentTheme = localStorage.getItem('theme');
+        if (currentTheme) {
+            document.documentElement.setAttribute('data-theme', currentTheme);
+            if (currentTheme === 'dark') {
+                themeSwitch.checked = true;
+                themeText.textContent = 'Light Mode';
+            }
+        }
+
+        // Theme switch event listener
+        themeSwitch.addEventListener('change', function(e) {
+            if (e.target.checked) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+                themeText.textContent = 'Light Mode';
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+                localStorage.setItem('theme', 'light');
+                themeText.textContent = 'Dark Mode';
+            }
+        });
+    </script>
+</body>
+</html>
