@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MCQ Generator</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         /* Theme Variables */
         :root {
@@ -52,6 +53,7 @@
             justify-content: center;
             padding: 20px;
             color: var(--text-color);
+            transition: background 0.3s ease;
         }
 
         .container {
@@ -62,6 +64,7 @@
             width: 100%;
             overflow: hidden;
             backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
         }
 
         .header {
@@ -88,49 +91,43 @@
             position: absolute;
             top: 20px;
             right: 20px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
             display: flex;
             align-items: center;
-            gap: 8px;
-        }
-
-        #theme-switch {
-            display: none;
-        }
-
-        .theme-slider {
-            width: 50px;
-            height: 24px;
-            background: #ccc;
-            border-radius: 12px;
-            position: relative;
+            justify-content: center;
             cursor: pointer;
-            transition: all 0.3s;
+            border: none;
+            transition: all 0.3s ease;
         }
 
-        .theme-slider:before {
-            content: "";
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .theme-toggle i {
+            font-size: 20px;
+            color: white;
             position: absolute;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: white;
-            top: 3px;
-            left: 3px;
-            transition: all 0.3s;
+            transition: all 0.3s ease;
         }
 
-        #theme-switch:checked + .theme-slider {
-            background: #2196F3;
+        .theme-toggle .fa-sun {
+            opacity: 1;
         }
 
-        #theme-switch:checked + .theme-slider:before {
-            transform: translateX(26px);
+        .theme-toggle .fa-moon {
+            opacity: 0;
         }
 
-        .theme-text {
-            font-size: 14px;
-            color: var(--header-text);
-            opacity: 0.9;
+        [data-theme="dark"] .theme-toggle .fa-sun {
+            opacity: 0;
+        }
+
+        [data-theme="dark"] .theme-toggle .fa-moon {
+            opacity: 1;
         }
 
         /* Content Styles */
@@ -399,8 +396,7 @@
             
             .theme-toggle {
                 position: static;
-                justify-content: center;
-                margin-top: 15px;
+                margin: 15px auto 0;
             }
         }
     </style>
@@ -410,11 +406,10 @@
         <div class="header">
             <h1>MCQ Generator</h1>
             <p>Upload a PDF and generate multiple choice questions automatically</p>
-            <div class="theme-toggle">
-                <input type="checkbox" id="theme-switch">
-                <label for="theme-switch" class="theme-slider"></label>
-                <span class="theme-text">Dark Mode</span>
-            </div>
+            <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+                <i class="fas fa-sun"></i>
+                <i class="fas fa-moon"></i>
+            </button>
         </div>
 
         <div class="content">
@@ -483,6 +478,23 @@
     </div>
 
     <script>
+        // Theme toggle functionality
+        const themeToggle = document.getElementById('theme-toggle');
+        const currentTheme = localStorage.getItem('theme');
+
+        // Set initial theme
+        if (currentTheme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+
+        // Toggle theme on button click
+        themeToggle.addEventListener('click', () => {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
+            localStorage.setItem('theme', isDark ? 'light' : 'dark');
+        });
+
+        // Form submission
         document.getElementById('mcqForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -636,33 +648,8 @@ Processing Time: ${data.timing.total_time}
                 label.style.color = 'var(--header-gradient-start)';
             }
         });
-
-        // Theme switching functionality
-        const themeSwitch = document.getElementById('theme-switch');
-        const themeText = document.querySelector('.theme-text');
-
-        // Check for saved theme preference
-        const currentTheme = localStorage.getItem('theme');
-        if (currentTheme) {
-            document.documentElement.setAttribute('data-theme', currentTheme);
-            if (currentTheme === 'dark') {
-                themeSwitch.checked = true;
-                themeText.textContent = 'Light Mode';
-            }
-        }
-
-        // Theme switch event listener
-        themeSwitch.addEventListener('change', function(e) {
-            if (e.target.checked) {
-                document.documentElement.setAttribute('data-theme', 'dark');
-                localStorage.setItem('theme', 'dark');
-                themeText.textContent = 'Light Mode';
-            } else {
-                document.documentElement.setAttribute('data-theme', 'light');
-                localStorage.setItem('theme', 'light');
-                themeText.textContent = 'Dark Mode';
-            }
-        });
     </script>
 </body>
 </html>
+
+
