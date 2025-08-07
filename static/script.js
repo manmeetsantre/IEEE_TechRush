@@ -1,5 +1,4 @@
-
-        // Theme toggle functionality
+ // Theme toggle functionality
         const themeToggle = document.getElementById('theme-toggle');
         const currentTheme = localStorage.getItem('theme');
 
@@ -58,7 +57,7 @@
                 }
             } catch (error) {
                 showError('Network error: Please check if the backend server is running');
-                console.log('Error:', error);
+                console.error('Error:', error);
             } finally {
                 // Hide loading state
                 document.getElementById('loading').style.display = 'none';
@@ -111,7 +110,7 @@
   mcqs.forEach((mcq) => {
     const card = document.createElement("div");
     card.className = "mcq-card";
-    console.log(mcq);
+console.log(mcq);
     card.innerHTML = `
       <div class="mcq-question">Q: ${mcq.question}</div>
       <ul class="mcq-options">
@@ -138,19 +137,19 @@
         function setupDownload(data) {
             document.getElementById('downloadBtn').onclick = function() {
                 const content = `MCQ Generator Results
-        Chapter(s): ${data.metadata.chapter}
-        Difficulty: ${data.metadata.difficulty}
-        Number of Questions: ${data.metadata.question_count}
-        Generated on: ${new Date().toLocaleString()}
+Chapter(s): ${data.metadata.chapter}
+Difficulty: ${data.metadata.difficulty}
+Number of Questions: ${data.metadata.question_count}
+Generated on: ${new Date().toLocaleString()}
 
-        SUMMARY:
-        ${data.summary}
+SUMMARY:
+${data.summary}
 
-        MULTIPLE CHOICE QUESTIONS:
-        ${data.mcqs}
+MULTIPLE CHOICE QUESTIONS:
+${data.mcqs}
 
-        Processing Time: ${data.timing.total_time}
-        `;
+Processing Time: ${data.timing.total_time}
+`;
 
                 const blob = new Blob([content], { type: 'text/plain' });
                 const url = window.URL.createObjectURL(blob);
