@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify, render_template
+from flask_cors import CORS
 from pytesseract import pytesseract
 from dotenv import load_dotenv
 import os
@@ -10,12 +11,18 @@ from pypdf import PdfReader
 import io
 from markdown import markdown
 import json
+import random
+import string
 
 load_dotenv()
 
 app = Flask(__name__, template_folder='templates')
+CORS(app)
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 gemini_model = genai.GenerativeModel('gemini-2.0-flash')
+
+def generate_random_string(length=10):
+    return ''.join(random.choices(string.ascii_lowercase, k=length))
 
 @app.route('/', methods=['POST', 'GET'])
 def home():
@@ -114,7 +121,7 @@ Requirements:
 - each question must have:
   * clear question stem
   * 4 options
-  * correct answer (specify the option in full)
+  * correct answer (specify the number, that is, 0-3)
   * concise explanation
   * difficulty rating
   * topic tag
@@ -127,7 +134,7 @@ Requirements:
     {{
         "question": "question here",
         "options": ["option1", "option2", "option3", "option4"],
-        "correctAnswer": "full text of option which is correct",
+        "correctAnswer": "number of answer which is correct, that is, from 0 to 3. make sure to start from 0.",
         "explanation": "explanation why correctAnswer is correct",
         "topic": "relevant topic that the question belongs to"
     }},
@@ -137,7 +144,13 @@ PLEASE PLEASE PLEASE MAKE IT IN JSON ONLY. DO NOT GIVE ANY EXTRA TEXT IN THE BEG
 
         response_mcqs = gemini_model.generate_content(contents=prompt, generation_config={'response_mime_type': 'application/json'})
         final_response += response_mcqs.text
-    return final_response
+    final_response_json = json.loads(final_response)
+    for idx, val in enumerate(final_response_json):
+        if isinstance(val['correctAnswer'], str):
+            val['correctAnswer'] = int(val['correctAnswer'])
+        val.update({'id': idx+1})
+    print(final_response_json)
+    return json.dumps(final_response_json)
 
 if __name__ == '__main__':
     app.run(debug=True)
