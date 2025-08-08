@@ -118,6 +118,10 @@ Requirements:
   * concise explanation
   * difficulty rating
   * topic tag
+- topic tagging must follow the specified instructions:
+  * the topic must not be too generic (i.e. Science, Engineering, etc.)
+  * the topic must not be too specific (i.e. Proof-Of-Work, Merkle Tree, etc.)
+  * the topic must be such that one can get a good amount of questions belonging to a certain topic, such that the topics can be later filtered by the user
 - the format must be in json, as specified below:
 [
     {{
