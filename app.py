@@ -5,17 +5,15 @@ import os
 from pdf2image import convert_from_bytes
 import time
 import requests  
-#from groq import Groq
 import google.generativeai as genai
 from pypdf import PdfReader
 import io
 from markdown import markdown
+import json
 
 load_dotenv()
 
 app = Flask(__name__, template_folder='templates')
-#client_summary = Groq(api_key=os.getenv("GROQ_API_KEY_SUMMARY"))
-#client_mcq = Groq(api_key=os.getenv("GROQ_API_KEY_MCQ"))
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 gemini_model = genai.GenerativeModel('gemini-2.0-flash')
 
@@ -38,9 +36,7 @@ def home():
         if not text.strip():
             return jsonify({"error": "No text extracted from PDF"}), 400
         
-        summary_start = time.time()
-        summarized_text = summary(text)
-        summary_time = time.time() - summary_start
+        summarized_text, summary_time = summary(text)
         
         mcq_start = time.time()
         mcqs = generate_mcqs(text, count=count, difficulty=difficulty, chapter=chapter)
@@ -68,7 +64,7 @@ def home():
     return render_template('index.html')
 
 def extract_text_from_pdf(pdf_file):
-    pdf_bytes = pdf_file.read()  # read once
+    pdf_bytes = pdf_file.read()
     text = ''
     try:
         reader = PdfReader(io.BytesIO(pdf_bytes))
@@ -90,16 +86,19 @@ def extract_text_from_pdf(pdf_file):
     return text, "ocr"
 
 def summary(text):
-    prompt = f"Please create the summary for following text: {text}.\nDirectly begin with summary. Make it readable by a common user, making the PDF simple to understand."
-    return markdown(gemini_model.generate_content(prompt).text)
-    #response_summary = client_summary.chat.completions.create(
-    #    model="llama3-8b-8192",
-    #    messages=[
-    #        {"role": "system", "content": "You are a content summarizer."},
-    #        {"role": "user", "content": f"Please create the summary for following text: {text} directly begin with summary, keep important events, and keywords for creating mcqs later"}
-    #    ]
-    #)
-    #return response_summary.choices[0].message.content[:5000]  # Limit to prevent token overload
+    headers = {
+        'Content-Type': 'application/x-www-form-urlencoded',
+    }
+    prompt = f"Please create the summary for following text: {text}.\nDirectly begin with summary. Make it readable by a common user, making the PDF simple to understand. You can also use markdown to make it visually appealing. However make sure it remains formal in nature, do not be too casual/informal. Also make sure the summary is concise, do not make it too long."
+    data = {
+        "model": "mistral",
+        "prompt": prompt,
+        "stream": False
+    }
+    data_json = json.dumps(data)
+    response = requests.post('http://localhost:11434/api/generate', headers=headers, data=data_json)
+    return markdown(response.json().get('response', 'Error: No response field found')), response.json().get('total_duration', -1000)
+    #return markdown(gemini_model.generate_content(prompt).text)
 
 def generate_mcqs(text, count, difficulty, chapter):
     batch_size = 100 # safer to chunk in batches
@@ -132,17 +131,9 @@ Requirements:
 ]
 PLEASE PLEASE PLEASE MAKE IT IN JSON ONLY. DO NOT GIVE ANY EXTRA TEXT IN THE BEGINNING OR IN THE END. I HAVE TO PARSE THE JSON THAT IS GIVEN BY YOU FURTHER. SO PLEASE ONLY GIVE JSON. PLEASE GIVE JSON ONLY. GIVE JSON FORMAT ONLY. DO NOT WRITE ANYTHING ELSE. DO NOT PUT NEWLINES OR ANYTHING WHICH IS NOT IN JSON FORMAT."""
 
-        #response_mcqs = client_mcq.chat.completions.create(
-        #model="llama3-70b-8192",
-        #messages=[
-        #    {"role": "system", "content": "You are a mcq generator"},
-        #    {"role": "user", "content": prompt}
-        #])
-        #final_response += response_mcqs.choices[0].message.content
         response_mcqs = gemini_model.generate_content(contents=prompt, generation_config={'response_mime_type': 'application/json'})
         final_response += response_mcqs.text
     return final_response
-
 
 if __name__ == '__main__':
     app.run(debug=True)
