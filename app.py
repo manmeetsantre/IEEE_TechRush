@@ -46,17 +46,20 @@ def home():
         extract_start = time.time()
         text, method = extract_text_from_pdf(pdf_file)
         extract_time = time.time() - extract_start
+        print(f"Extraction took {extract_time} seconds.")
         
         if not text.strip():
             return jsonify({"error": "No text extracted from PDF"}), 400
 
         # generate summary
         summarized_text, summary_time = summary(text)
+        print(f"Summarization took {int(summary_time/1e9)} seconds")
 
         # generate MCQs
         mcq_start = time.time()
         mcqs = generate_mcqs(text, count=count, difficulty=difficulty, chapter=chapter)
         mcq_time = time.time() - mcq_start
+        print(f"MCQ generation took {mcq_time} seconds")
 
         total_time = time.time() - start_time
 
