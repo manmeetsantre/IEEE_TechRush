@@ -1,5 +1,9 @@
 # Necessary imports
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, send_file
+import tempfile
+from reportlab.lib import colors  # used for PDF generation
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, ListFlowable, ListItem
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from flask_cors import CORS  # handles cross-origin issues during frontend-backend connection
 from pytesseract import pytesseract  # used for OCR if PDF is image-based
 from dotenv import load_dotenv  # loads environment variables like API keys
@@ -20,6 +24,9 @@ from bs4 import BeautifulSoup
 
 load_dotenv()
 
+latest_summary = ""
+latest_mcqs = ""
+
 app = Flask(__name__, template_folder='templates')
 CORS(app)  # allows requests from other origins (frontend)
 
@@ -34,6 +41,7 @@ def generate_random_string(length=10):
 
 @app.route('/', methods=['POST', 'GET'])
 def home():
+    global latest_summary, latest_mcqs
     if request.method == 'POST':
         start_time = time.time()
 
@@ -69,6 +77,9 @@ def home():
 
         total_time = time.time() - start_time
 
+        latest_summary = summarized_text
+        latest_mcqs = mcqs
+
         # send final response
         return jsonify({
             "summary": summarized_text,
@@ -88,6 +99,82 @@ def home():
         })
     
     return render_template('index.html')
+
+@app.route('/download/pdf', methods=['GET'])
+def download_pdf():
+    if not latest_summary and not latest_mcqs:
+        return "No data to download", 400
+    
+    try:
+        mcq_list = json.loads(latest_mcqs)
+    except:
+        mcq_list = []
+
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+    doc = SimpleDocTemplate(temp_file.name)
+    styles = getSampleStyleSheet()
+
+    # Custom styles
+    question_style = ParagraphStyle('QuestionStyle', parent=styles['BodyText'], spaceAfter=6, fontSize=11, leading=14)
+    answer_style = ParagraphStyle('AnswerStyle', parent=styles['BodyText'], textColor=colors.green, spaceAfter=12)
+    heading_style = ParagraphStyle('HeadingStyle', parent=styles['Heading1'], spaceAfter=12)
+
+    elements = []
+
+    # Summary
+    elements.append(Paragraph("📄 Summary", heading_style))
+    elements.append(Paragraph(latest_summary, styles['BodyText']))
+    elements.append(Spacer(1, 15))
+
+    # MCQs
+    elements.append(Paragraph("📝 Multiple Choice Questions", heading_style))
+    for i, mcq in enumerate(mcq_list, start=1):
+        elements.append(Paragraph(f"{i}. {mcq['question']}", question_style))
+
+        # Bullet list for options
+        option_items = [
+            ListItem(Paragraph(f"{chr(65+idx)}. {opt}", styles['BodyText']), bulletColor=colors.black)
+            for idx, opt in enumerate(mcq['options'])
+        ]
+        elements.append(ListFlowable(option_items, bulletType='bullet', start='circle'))
+
+        # Correct Answer
+        correct_opt = f"{chr(65+mcq['correctAnswer'])}. {mcq['options'][mcq['correctAnswer']]}"
+        elements.append(Paragraph(f"✅ Correct Answer: <b>{correct_opt}</b>", answer_style))
+
+        # Explanation
+        elements.append(Paragraph(f"ℹ {mcq['explanation']}", styles['BodyText']))
+        elements.append(Spacer(1, 12))
+
+    doc.build(elements)
+    return send_file(temp_file.name, as_attachment=True, download_name="results.pdf")
+
+@app.route('/download/txt', methods=['GET'])
+def download_txt():
+    if not latest_summary and not latest_mcqs:
+        return "No data to download", 400
+
+    # Remove HTML from summary
+    clean_summary = BeautifulSoup(latest_summary, "html.parser").get_text()
+
+    try:
+        mcq_list = json.loads(latest_mcqs)
+    except:
+        mcq_list = []
+
+    content = "📄 Summary\n" + clean_summary + "\n\n📝 Multiple Choice Questions\n"
+    for i, mcq in enumerate(mcq_list, start=1):
+        content += f"{i}. {mcq['question']}\n"
+        for idx, opt in enumerate(mcq['options']):
+            content += f"   {chr(65+idx)}. {opt}\n"
+        content += f"✅ Correct Answer: {chr(65+mcq['correctAnswer'])}. {mcq['options'][mcq['correctAnswer']]}\n"
+        content += f"ℹ Explanation: {mcq['explanation']}\n\n"
+
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".txt", mode='w', encoding='utf-8')
+    temp_file.write(content)
+    temp_file.close()
+    return send_file(temp_file.name, as_attachment=True, download_name="results.txt")
+
 
 # tries to extract text using pypdf, falls back to OCR if text not found
 def extract_text_from_pdf(pdf_file):
