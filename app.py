@@ -106,9 +106,10 @@ def extract_text_from_pdf(pdf_file):
 
 # sends summary request to local Mistral (Ollama) API
 def summary(text):
-    headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-    prompt = f"Please create the summary for following text: {text}.\nDirectly begin with summary. Make it readable by a common user, making the PDF simple to understand. You can also use markdown to make it visually appealing. However make sure it remains formal in nature, do not be too casual/informal. Also make sure the summary is concise, do not make it too long."
-
+    headers = {
+        'Content-Type': 'application/x-www-form-urlencoded',
+    }
+    prompt = f"Please create the summary for following text: {text}.\nDirectly begin with summary. Make it readable by a common user, making the PDF simple to understand. You can also use markdown to make it visually appealing. However make sure it remains formal in nature, do not be too casual/informal. Also make sure the summary is concise, do not make it too long. Make sure to retain the language of the text. That is, if the text is in Hindi, keep your response in Hindi too."
     data = {
         "model": "mistral",
         "prompt": prompt,
@@ -133,7 +134,7 @@ def generate_mcqs(text, count, difficulty, chapter):
 
         # detailed instruction to force Gemini to return pure JSON
         prompt = f"""
-Create {batch_count} multiple choice questions based on this summary:\n\n{text}
+Create {batch_count} multiple choice questions based on this text extracted from PDF:\n\n{text}
 Requirements:
 - difficulty: {difficulty}
 - chapter: {chapter}
@@ -148,6 +149,7 @@ Requirements:
   * the topic must not be too generic (i.e. Science, Engineering, etc.)
   * the topic must not be too specific (i.e. Proof-Of-Work, Merkle Tree, etc.)
   * the topic must be such that one can get a good amount of questions belonging to a certain topic, such that the topics can be later filtered by the user
+- make sure to preserve the language of the text extracted from PDF, that is, if the text is in Hindi, your response must be in Hindi too
 - the format must be in json, as specified below:
 [
     {{
