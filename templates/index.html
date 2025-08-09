@@ -472,6 +472,50 @@
             line-height: 1.6;
             opacity: 0.9;
         }
+        /* Action Buttons */
+.action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: white;
+}
+
+.show-answers-btn {
+  background: var(--primary-blue);
+}
+
+.show-answers-btn:hover {
+  background: #2563eb;
+}
+
+.download-pdf-btn {
+  background: var(--success-green);
+}
+
+.download-pdf-btn:hover {
+  background: #059669;
+}
+
+.download-txt-btn {
+  background: var(--primary-purple);
+}
+
+.download-txt-btn:hover {
+  background: #7c3aed;
+}
     </style>
 </head>
 <body class="theme-dark">
@@ -557,6 +601,23 @@
 
 
             <!-- MCQs Tab -->
+
+            <!-- Action Buttons -->
+                <div class="action-buttons">
+                    <button id="toggle-answers" class="action-btn show-answers-btn">
+                        <i data-lucide="eye"></i>
+                        <span>Show Answers</span>
+                    </button>
+                    <button id="download-pdf" class="action-btn download-pdf-btn">
+                        <i data-lucide="download"></i>
+                        <span>Download PDF</span>
+                    </button>
+                    <button id="download-txt" class="action-btn download-txt-btn">
+                        <i data-lucide="download"></i>
+                        <span>Download TXT</span>
+                    </button>
+                </div>
+
             <div id="mcqsTab" class="mcq-container active">
                 <div id="resultsCard" class="results-card hidden">
                     <h3 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 0.5rem;">Quiz Results</h3>
@@ -598,6 +659,12 @@
         let selectedAnswers = {};
         let showResults = false;
         let currentTheme = 'dark';
+
+        const elements = {
+            downloadPdf: document.getElementById('downloadPdf'),
+            downloadTxt: document.getElementById('downloadTxt'),
+            toggleAnswers: document.getElementById('toggleAnswers')
+        };
 
         // Theme toggle
         function toggleTheme() {
@@ -660,31 +727,31 @@
                     const summary = data.summary || '';
 
 		    if (typeof mcqs === "string") {
-    try {
-        mcqs = JSON.parse(mcqs);
-    } catch (e) {
-        console.error("Error parsing MCQs:", e);
-        mcqs = [];
-    }
-    let history = JSON.parse(localStorage.getItem('mcqHistory') || '[]');
-history.push({
-    timestamp: new Date().toISOString(),
-    chapter: document.getElementById('chapters').value,
-    difficulty: document.getElementById('difficulty').value,
-    mcqs: mcqs
-});
-localStorage.setItem('mcqHistory', JSON.stringify(history));
-}
+            try {
+                mcqs = JSON.parse(mcqs);
+            } catch (e) {
+                console.error("Error parsing MCQs:", e);
+                mcqs = [];
+            }
+            let history = JSON.parse(localStorage.getItem('mcqHistory') || '[]');
+        history.push({
+            timestamp: new Date().toISOString(),
+            chapter: document.getElementById('chapters').value,
+            difficulty: document.getElementById('difficulty').value,
+            mcqs: mcqs
+        });
+        localStorage.setItem('mcqHistory', JSON.stringify(history));
+        }
 
-// 🔹 Save to localStorage
-let history = JSON.parse(localStorage.getItem('mcqHistory') || '[]');
-history.push({
-    timestamp: new Date().toISOString(),
-    chapter: document.getElementById('chapters').value,
-    difficulty: document.getElementById('difficulty').value,
-    mcqs: mcqs
-});
-localStorage.setItem('mcqHistory', JSON.stringify(history));
+        // 🔹 Save to localStorage
+        let history = JSON.parse(localStorage.getItem('mcqHistory') || '[]');
+        history.push({
+            timestamp: new Date().toISOString(),
+            chapter: document.getElementById('chapters').value,
+            difficulty: document.getElementById('difficulty').value,
+            mcqs: mcqs
+        });
+        localStorage.setItem('mcqHistory', JSON.stringify(history));
 
     
                     displayResults(mcqs, summary);
@@ -842,6 +909,12 @@ localStorage.setItem('mcqHistory', JSON.stringify(history));
             }
         }
 
+        function toggleAnswersVisibility() {
+            appState.showAnswers = !appState.showAnswers;
+            updateAnswersToggleButton();
+            updateMCQDisplay();
+        }
+
         // Submit answers
         function submitAnswers() {
             showResults = true;
@@ -874,6 +947,102 @@ localStorage.setItem('mcqHistory', JSON.stringify(history));
             return correct;
         }
 
+                elements.downloadPdf.addEventListener('click', function() {
+            downloadMCQs('pdf');
+        });
+        elements.downloadTxt.addEventListener('click', function() {
+            downloadMCQs('txt');
+        });
+
+                // Download Functionality
+        async function downloadMCQs(format) {
+            if (!appState.mcqs || appState.mcqs.length === 0) {
+                alert('No MCQs available to download');
+                return;
+            }
+
+            setDownloadLoading(true);
+            
+            try {
+                const response = await fetch(`http://localhost:5000/api/download-mcqs/${format}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        mcqs: appState.mcqs,
+                        title: `MCQ Quiz - ${appState.file?.name || 'Generated Quiz'}`
+                    }),
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = `MCQ_Quiz.${format}`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                } else {
+                    throw new Error('Download failed');
+                }
+            } catch (error) {
+                console.error('Download error:', error);
+                alert('Download failed. Please try again.');
+                
+                // Fallback: Generate client-side download
+                if (format === 'txt') {
+                    downloadAsText();
+                }
+            } finally {
+                setDownloadLoading(false);
+            }
+        }
+
+        function setDownloadLoading(loading) {
+            appState.downloadLoading = loading;
+            elements.downloadPdf.disabled = loading;
+            elements.downloadTxt.disabled = loading;
+            
+            if (loading) {
+                elements.downloadPdf.classList.add('disabled');
+                elements.downloadTxt.classList.add('disabled');
+            } else {
+                elements.downloadPdf.classList.remove('disabled');
+                elements.downloadTxt.classList.remove('disabled');
+            }
+        }
+
+        // Fallback download as text
+        function downloadAsText() {
+            let content = `MCQ Quiz - ${appState.file?.name || 'Generated Quiz'}\n`;
+            content += '='.repeat(50) + '\n\n';
+            
+            appState.mcqs.forEach((mcq, index) => {
+                content += `${index + 1}. ${mcq.question}\n\n`;
+                mcq.options.forEach((option, optionIndex) => {
+                    const letter = String.fromCharCode(65 + optionIndex);
+                    const marker = optionIndex === mcq.correct_answer ? ' (CORRECT)' : '';
+                    content += `   ${letter}. ${option}${marker}\n`;
+                });
+                content += `\n   Explanation: ${mcq.explanation}\n\n`;
+                content += '-'.repeat(30) + '\n\n';
+            });
+            
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'MCQ_Quiz.txt';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+
+
         // Reset quiz
         function resetQuiz() {
             selectedAnswers = {};
@@ -899,25 +1068,25 @@ localStorage.setItem('mcqHistory', JSON.stringify(history));
         }
 
         // Switch tabs
-function switchTab(tab) {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
 
-    if (tab === 'mcqs') {
-        document.querySelectorAll('.tab')[0].classList.add('active');
-    } else if (tab === 'summary') {
-        document.querySelectorAll('.tab')[1].classList.add('active');
-    } else if (tab === 'history') {
-        document.querySelectorAll('.tab')[2].classList.add('active');
-    }
+            if (tab === 'mcqs') {
+                document.querySelectorAll('.tab')[0].classList.add('active');
+            } else if (tab === 'summary') {
+                document.querySelectorAll('.tab')[1].classList.add('active');
+            } else if (tab === 'history') {
+                document.querySelectorAll('.tab')[2].classList.add('active');
+            }
 
-    document.getElementById('mcqsTab').classList.toggle('active', tab === 'mcqs');
-    document.getElementById('summaryTab').classList.toggle('active', tab === 'summary');
-    document.getElementById('historyTab').classList.toggle('active', tab === 'history');
+            document.getElementById('mcqsTab').classList.toggle('active', tab === 'mcqs');
+            document.getElementById('summaryTab').classList.toggle('active', tab === 'summary');
+            document.getElementById('historyTab').classList.toggle('active', tab === 'history');
 
-    if (tab === 'history') {
-        loadHistory();
-    }
-}
+            if (tab === 'history') {
+                loadHistory();
+            }
+        }
 
 
 
@@ -928,29 +1097,29 @@ function switchTab(tab) {
             toggleTheme(); // Call twice to set back to dark mode
         });
 
-function loadHistory() {
-    const history = JSON.parse(localStorage.getItem('mcqHistory') || '[]');
-    const container = document.getElementById('historyList');
-    container.innerHTML = '';
+            function loadHistory() {
+                const history = JSON.parse(localStorage.getItem('mcqHistory') || '[]');
+                const container = document.getElementById('historyList');
+                container.innerHTML = '';
 
-    if (history.length === 0) {
-        container.innerHTML = '<p>No history found.</p>';
-        return;
-    }
+                if (history.length === 0) {
+                    container.innerHTML = '<p>No history found.</p>';
+                    return;
+                }
 
-    history.forEach((entry, index) => {
-        const entryDiv = document.createElement('div');
-        entryDiv.className = 'mcq-card';
-        entryDiv.innerHTML = `
-            <h3 style="margin-bottom: 0.5rem;">Quiz ${index + 1} - ${entry.difficulty} - ${entry.chapter}</h3>
-            <small>${new Date(entry.timestamp).toLocaleString()}</small>
-            <ul style="margin-top: 0.5rem;">
-                ${entry.mcqs.map(mcq => `<li>${mcq.question}</li>`).join('')}
-            </ul>
-        `;
-        container.appendChild(entryDiv);
-    });
-}
+                history.forEach((entry, index) => {
+                    const entryDiv = document.createElement('div');
+                    entryDiv.className = 'mcq-card';
+                    entryDiv.innerHTML = `
+                        <h3 style="margin-bottom: 0.5rem;">Quiz ${index + 1} - ${entry.difficulty} - ${entry.chapter}</h3>
+                        <small>${new Date(entry.timestamp).toLocaleString()}</small>
+                        <ul style="margin-top: 0.5rem;">
+                            ${entry.mcqs.map(mcq => `<li>${mcq.question}</li>`).join('')}
+                        </ul>
+                    `;
+                    container.appendChild(entryDiv);
+                });
+            }
 
 
     </script>
