@@ -297,6 +297,30 @@
             margin-bottom: 1.5rem;
             transition: all 0.3s ease;
         }
+        .mcq-header {
+        display: flex;
+        align-items: center;
+        margin: 1rem;
+        gap: 12px;
+        flex-wrap: wrap; /* good for narrow screens */
+        }
+
+        .topic-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 15px;
+        font-weight: 600;
+        color: #fff;
+        background: #6b7cff; /* default color — change to match your theme */
+        box-shadow: 0 1px 0 rgba(0,0,0,0.05);
+        }
+
+        /* optional: smaller on mobile */
+        @media (max-width: 480px) {
+        .topic-badge { font-size: 11px; padding: 3px 8px; }
+    
+        }
 
         .theme-light .mcq-card {
             background-color: white;
@@ -474,49 +498,49 @@
             opacity: 0.9;
         }
         /* Action Buttons */
-.action-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
+        .action-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        }
 
-.action-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 0.5rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  color: white;
-}
+        .action-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        color: white;
+        }
 
-.show-answers-btn {
-  background: var(--primary-blue);
-}
+        .show-answers-btn {
+        background: var(--primary-blue);
+        }
 
-.show-answers-btn:hover {
-  background: #2563eb;
-}
+        .show-answers-btn:hover {
+        background: #2563eb;
+        }
 
-.download-pdf-btn {
-  background: var(--success-green);
-}
+        .download-pdf-btn {
+        background: var(--success-green);
+        }
 
-.download-pdf-btn:hover {
-  background: #059669;
-}
+        .download-pdf-btn:hover {
+        background: #059669;
+        }
 
-.download-txt-btn {
-  background: var(--primary-purple);
-}
+        .download-txt-btn {
+        background: var(--primary-purple);
+        }
 
-.download-txt-btn:hover {
-  background: #7c3aed;
-}
+        .download-txt-btn:hover {
+        background: #7c3aed;
+        }
     </style>
 </head>
 <body class="theme-dark">
@@ -590,12 +614,12 @@
         <div id="resultsSection" class="card hidden">
             <!-- Tab Navigation -->
            <div class="tabs">
-    <div class="tab active" onclick="switchTab('mcqs')">
-        MCQs (<span id="mcqCount">0</span>)
-    </div>
-    <div class="tab" onclick="switchTab('summary')">Summary</div>
-    <div class="tab" onclick="switchTab('history')">Question Bank</div> <!-- New -->
-</div>
+            <div class="tab active" onclick="switchTab('mcqs')">
+                MCQs (<span id="mcqCount">0</span>)
+            </div>
+            <div class="tab" onclick="switchTab('summary')">Summary</div>
+            <div class="tab" onclick="switchTab('history')">Question Bank</div> <!-- New -->
+            </div>
 
 
             <!-- MCQs Tab -->
@@ -624,6 +648,7 @@
                 </div>
 
                 <div id="mcqsList"></div>
+                
 
                 <div id="submitSection" class="text-center mt-6 hidden">
                     <button class="btn btn-success" onclick="submitAnswers()">Submit Answers</button>
@@ -644,8 +669,8 @@
                 </div>
             </div>
             <div id="historyTab" class="mcq-container">
-    <div id="historyList"></div>
-</div>
+            <div id="historyList"></div>
+        </div>
 
         </div>
     </div>
@@ -831,29 +856,61 @@
             mcqs.forEach((mcq, index) => {
                 const mcqCard = document.createElement('div');
                 mcqCard.className = 'mcq-card';
-                mcqCard.innerHTML = `
-                    <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">
-                        ${index + 1}. ${mcq.question}
-                    </h3>
-                    <div class="options">
-                        ${mcq.options.map((option, optionIndex) => `
-                            <button class="option" onclick="selectAnswer(${mcq.id}, ${optionIndex})" 
-                                    id="option-${mcq.id}-${optionIndex}">
-                                <span>${String.fromCharCode(65 + optionIndex)}. ${option}</span>
-                                <span id="icon-${mcq.id}-${optionIndex}"></span>
-                            </button>
-                        `).join('')}
-                    </div>
-                    <div id="explanation-${mcq.id}" class="explanation hidden">
-                        <div class="explanation-title">Explanation:</div>
-                        <div class="explanation-text">${mcq.explanation}</div>
-                    </div>
+
+                // Header wrapper (topic badge + question)
+                const header = document.createElement('div');
+                header.className = 'mcq-header'; // flex container for nice layout
+
+                
+                // Question
+                const questionHeading = document.createElement('h3');
+                questionHeading.style.fontSize = '1.125rem';
+                questionHeading.style.fontWeight = '600';
+                questionHeading.innerHTML = `${index + 1}. ${mcq.question}`;
+                
+                // append heading to header (so topic + question are on same row)
+                header.appendChild(questionHeading);
+                
+                // Create topic badge
+                    const topicDiv = document.createElement('div');
+                    topicDiv.className = 'topic-badge';
+                    topicDiv.textContent = mcq.topic;
+                    header.appendChild(topicDiv);
+
+                // Options
+                const optionsContainer = document.createElement('div');
+                optionsContainer.className = 'options';
+                optionsContainer.innerHTML = mcq.options.map((option, optionIndex) => `
+                    <button class="option" onclick="selectAnswer(${mcq.id}, ${optionIndex})" 
+                            id="option-${mcq.id}-${optionIndex}">
+                        <span>${String.fromCharCode(65 + optionIndex)}. ${option}</span>
+                        <span id="icon-${mcq.id}-${optionIndex}"></span>
+                    </button>
+                `).join('');
+
+                // Explanation
+                const explanationDiv = document.createElement('div');
+                explanationDiv.id = `explanation-${mcq.id}`;
+                explanationDiv.className = 'explanation hidden';
+                explanationDiv.innerHTML = `
+                    <div class="explanation-title">Explanation:</div>
+                    <div class="explanation-text">${mcq.explanation}</div>
                 `;
+
+                // Append elements to MCQ card
+                mcqCard.appendChild(header);
+                mcqCard.appendChild(optionsContainer);
+                mcqCard.appendChild(explanationDiv);
+
+                // Append MCQ card to container
                 container.appendChild(mcqCard);
             });
 
             updateSubmitButton();
         }
+
+        
+        
 
         // Select answer
         function selectAnswer(questionId, answerIndex) {
