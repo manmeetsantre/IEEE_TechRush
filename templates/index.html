@@ -314,6 +314,7 @@
         color: #fff;
         background: #6b7cff; /* default color — change to match your theme */
         box-shadow: 0 1px 0 rgba(0,0,0,0.05);
+        opacity: 0.85;
         }
 
         /* optional: smaller on mobile */
@@ -518,23 +519,17 @@
         color: white;
         }
 
-        .show-answers-btn {
-        background: var(--primary-blue);
-        }
-
-        
-
         .download-pdf-btn {
-        background: var(--success-green);
+        background: #059669;
         }
 
         
 
         .download-txt-btn {
-        background: var(--primary-purple);
+        background: #7c3aed;
         }
 
-        
+    
     </style>
 </head>
 <body class="theme-dark">
@@ -620,10 +615,6 @@
 
             <!-- Action Buttons -->
                 <div class="action-buttons">
-                    <button id="toggle-answers" class="action-btn show-answers-btn">
-                        <i data-lucide="eye"></i>
-                        <span>Show Answers</span>
-                    </button>
                     <button id="download-pdf" class="action-btn download-pdf-btn">
                         <i data-lucide="download"></i>
                         <span>Download PDF</span>
@@ -633,6 +624,12 @@
                         <span>Download TXT</span>
                     </button>
                 </div>
+
+                <script>
+                function downloadFile(type) {
+                    window.location.href = `/download/${type}`;
+                }
+                </script>
 
             <div id="mcqsTab" class="mcq-container active">
                 <div id="resultsCard" class="results-card hidden">
@@ -993,12 +990,7 @@
             return correct;
         }
 
-                elements.downloadPdf.addEventListener('click', function() {
-            downloadMCQs('pdf');
-        });
-        elements.downloadTxt.addEventListener('click', function() {
-            downloadMCQs('txt');
-        });
+        
 
                 // Download Functionality
         async function downloadMCQs(format) {
