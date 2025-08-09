@@ -101,7 +101,7 @@ def extract_text_from_pdf(pdf_file):
     images = convert_from_bytes(pdf_bytes, dpi=75, grayscale=True)
     text = ''
     for image in images:
-        text += pytesseract.image_to_string(image)
+        text += pytesseract.image_to_string(image, lang='eng+hin+mar', config='--psm 6')
     return text, "ocr"
 
 # sends summary request to local Mistral (Ollama) API
