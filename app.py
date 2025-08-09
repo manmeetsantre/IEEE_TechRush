@@ -14,6 +14,9 @@ from markdown import markdown  # to render summary in markdown
 import json
 import random
 import string
+import wave
+from piper import PiperVoice
+from bs4 import BeautifulSoup
 
 load_dotenv()
 
@@ -23,6 +26,7 @@ CORS(app)  # allows requests from other origins (frontend)
 # setup Gemini model
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 gemini_model = genai.GenerativeModel('gemini-2.0-flash')
+voice = PiperVoice.load("en_US-lessac-high.onnx")
 
 # generates a random string (used for unique IDs if needed)
 def generate_random_string(length=10):
@@ -122,9 +126,11 @@ def summary(text):
     response = requests.post('http://localhost:11434/api/generate',
                              headers=headers,
                              data=json.dumps(data))
-    
+    response_text = markdown(response.json().get('response', 'Error: No response field found'))
+    with wave.open("audio.wav", "wb") as wav_file:
+        voice.synthesize_wav(BeautifulSoup(response_text, 'html.parser').get_text(), wav_file)
     # markdown makes the summary display better on frontend
-    return markdown(response.json().get('response', 'Error: No response field found')), response.json().get('total_duration', -1000)
+    return response_text, response.json().get('total_duration', -1000)
 
 # uses Gemini to generate MCQs in JSON format
 def generate_mcqs(text, count, difficulty, chapter):

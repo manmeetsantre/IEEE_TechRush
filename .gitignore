@@ -1,2 +1,5 @@
 .env
 venv
+en_US-lessac-high.onnx
+en_US-lessac-high.onnx.json
+audio.wav
