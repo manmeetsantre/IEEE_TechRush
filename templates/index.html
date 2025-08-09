@@ -615,12 +615,20 @@
 
             <!-- Action Buttons -->
                 <div class="action-buttons">
-                    <button id="download-pdf" class="action-btn download-pdf-btn">
-                        <i data-lucide="download"></i>
+                    <button id="download-pdf" class="action-btn download-pdf-btn" onclick="downloadFile('pdf')">
+			<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download-icon lucide-download">
+		        	<path d="M12 15V3"/>
+				<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+				<path d="m7 10 5 5 5-5"/>
+			</svg>
                         <span>Download PDF</span>
                     </button>
-                    <button id="download-txt" class="action-btn download-txt-btn">
-                        <i data-lucide="download"></i>
+                    <button id="download-txt" class="action-btn download-txt-btn" onclick="downloadFile('txt')">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download-icon lucide-download">
+		        	<path d="M12 15V3"/>
+				<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+				<path d="m7 10 5 5 5-5"/>
+			</svg>
                         <span>Download TXT</span>
                     </button>
                 </div>
@@ -988,56 +996,6 @@
                 }
             });
             return correct;
-        }
-
-        
-
-                // Download Functionality
-        async function downloadMCQs(format) {
-            if (!appState.mcqs || appState.mcqs.length === 0) {
-                alert('No MCQs available to download');
-                return;
-            }
-
-            setDownloadLoading(true);
-            
-            try {
-                const response = await fetch(`http://localhost:5000/api/download-mcqs/${format}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        mcqs: appState.mcqs,
-                        title: `MCQ Quiz - ${appState.file?.name || 'Generated Quiz'}`
-                    }),
-                });
-
-                if (response.ok) {
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.style.display = 'none';
-                    a.href = url;
-                    a.download = `MCQ_Quiz.${format}`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    window.URL.revokeObjectURL(url);
-                } else {
-                    throw new Error('Download failed');
-                }
-            } catch (error) {
-                console.error('Download error:', error);
-                alert('Download failed. Please try again.');
-                
-                // Fallback: Generate client-side download
-                if (format === 'txt') {
-                    downloadAsText();
-                }
-            } finally {
-                setDownloadLoading(false);
-            }
         }
 
         function setDownloadLoading(loading) {
