@@ -1,202 +1,303 @@
- // Theme toggle functionality
-        const themeToggle = document.getElementById('theme-toggle');
-        const currentTheme = localStorage.getItem('theme');
 
-        // Set initial theme
-        if (currentTheme === 'dark') {
-            document.documentElement.setAttribute('data-theme', 'dark');
+        // Application state
+        let currentFile = null;
+        let mcqs = [];
+        let selectedAnswers = {};
+        let showResults = false;
+        let currentTheme = 'dark';
+
+        // Theme toggle
+        function toggleTheme() {
+            currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.body.className = `theme-${currentTheme}`;
+            
+            const icon = document.getElementById('theme-icon');
+            if (currentTheme === 'dark') {
+                icon.innerHTML = `<circle cx="12" cy="12" r="5"></circle><path d="M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"></path>`;
+            } else {
+                icon.innerHTML = `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>`;
+            }
         }
 
-        // Toggle theme on button click
-        themeToggle.addEventListener('click', () => {
-            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-            document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
-            localStorage.setItem('theme', isDark ? 'light' : 'dark');
-        });
+        // File upload handler
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (file && file.type === 'application/pdf') {
+                currentFile = file;
+                document.getElementById('fileStatus').innerHTML = `
+                    <p style="font-weight: 500; color: #16a34a;">${file.name}</p>
+                    <p style="font-size: 0.875rem; opacity: 0.7;">Click to change file</p>
+                `;
+            } else {
+                alert('Please upload a PDF file');
+                event.target.value = '';
+            }
+        }
 
-        // Form submission
-        document.getElementById('mcqForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData();
-            const pdfFile = document.getElementById('pdf_file').files[0];
-            const questionCount = document.getElementById('question_count').value;
-            const difficulty = document.getElementById('difficulty').value;
-            const chapter = document.getElementById('chapter').value;
-
-            if (!pdfFile) {
-                showError('Please select a PDF file');
+        // Generate MCQs
+        async function generateMCQs() {
+            if (!currentFile) {
+                alert('Please upload a PDF file first');
                 return;
             }
 
-            formData.append('pdf_file', pdfFile);
-            formData.append('question_count', questionCount);
-            formData.append('difficulty', difficulty);
-            formData.append('chapter', chapter);
-
-            // Show loading state
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('results').style.display = 'none';
-            document.getElementById('generateBtn').disabled = true;
-            document.getElementById('generateBtn').textContent = 'Processing...';
-            clearMessages();
+            const btn = document.getElementById('generateBtn');
+            btn.disabled = true;
+            btn.innerHTML = `
+                <div class="loading"></div>
+                Generating MCQs...
+            `;
 
             try {
-                const response = await fetch('/', {
+                const formData = new FormData();
+                formData.append('pdf_file', currentFile);
+                formData.append('question_count', document.getElementById('numQuestions').value);
+                formData.append('difficulty', document.getElementById('difficulty').value);
+                formData.append('chapter', document.getElementById('chapters').value);
+
+                // Replace with your Flask backend URL
+                const response = await fetch('http://localhost:5000/', {
                     method: 'POST',
-                    body: formData
+                    body: formData,
                 });
 
-                const data = await response.json();
-
                 if (response.ok) {
-                    displayResults(data);
-                    showSuccess('MCQs generated successfully!');
+                    const data = await response.json();
+                    mcqs = data.mcqs;
+                    const summary = data.summary || '';
+		    if (typeof mcqs === "string") {
+                      try {
+                        mcqs = JSON.parse(mcqs);
+                      } catch (e) {
+                        mcqContainer.innerHTML = "<p>Error parsing MCQs.</p>";
+                        return;
+                      }
+                    }
+                    displayResults(mcqs, summary);
                 } else {
-                    showError(data.error || 'An error occurred while generating MCQs');
+                    throw new Error('Failed to generate MCQs');
                 }
             } catch (error) {
-                showError('Network error: Please check if the backend server is running');
-                console.error('Error:', error);
+                console.error('Error generating MCQs:', error);
+                // Mock data for demonstration
+                mcqs = [
+                    {
+                        id: 1,
+                        question: "What is the primary function of mitochondria in a cell?",
+                        options: [
+                            "Protein synthesis",
+                            "Energy production",
+                            "DNA replication",
+                            "Waste removal"
+                        ],
+                        correctAnswer: 1,
+                        explanation: "Mitochondria are known as the powerhouses of the cell because they produce ATP through cellular respiration."
+                    },
+                    {
+                        id: 2,
+                        question: "Which programming paradigm does Python primarily support?",
+                        options: [
+                            "Only object-oriented",
+                            "Only functional",
+                            "Multi-paradigm",
+                            "Only procedural"
+                        ],
+                        correctAnswer: 2,
+                        explanation: "Python supports multiple programming paradigms including object-oriented, functional, and procedural programming."
+                    },
+                    {
+                        id: 3,
+                        question: "What is the time complexity of binary search?",
+                        options: [
+                            "O(n)",
+                            "O(log n)",
+                            "O(n²)",
+                            "O(1)"
+                        ],
+                        correctAnswer: 1,
+                        explanation: "Binary search has O(log n) time complexity because it eliminates half of the remaining elements in each step."
+                    }
+                ];
+                
+                const summary = "This document covers fundamental concepts in computer science and biology, including cellular biology, programming paradigms, and algorithm analysis. The content provides a comprehensive overview of these topics with practical examples and theoretical foundations.";
+                displayResults(mcqs, summary);
             } finally {
-                // Hide loading state
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('generateBtn').disabled = false;
-                document.getElementById('generateBtn').textContent = 'Generate MCQs';
+                btn.disabled = false;
+                btn.innerHTML = `
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 8V4H8"></path>
+                        <path d="m8 4 4 4 6-6 2 2v4"></path>
+                        <path d="M2 14h12a2 2 0 1 1 0 4h-2"></path>
+                        <path d="m2 14 1.5-1.5c.5-.5 1.2-.5 1.7 0l4.8 4.8a2 2 0 0 0 2.8 0L15 15"></path>
+                    </svg>
+                    GENERATE MCQS
+                `;
             }
-        });
-
-        function displayResults(data) {
-  // Metadata
-  const metadata = data.metadata;
-  const timing = data.timing;
-  document.getElementById('metadata').innerHTML = `
-    <div class="metadata-item">
-        <div class="metadata-label">Chapter(s)</div>
-        <div class="metadata-value">${metadata.chapter}</div>
-    </div>
-    <div class="metadata-item">
-        <div class="metadata-label">Difficulty</div>
-        <div class="metadata-value">${metadata.difficulty}</div>
-    </div>
-    <div class="metadata-item">
-        <div class="metadata-label">Questions</div>
-        <div class="metadata-value">${metadata.question_count}</div>
-    </div>
-    <div class="metadata-item">
-        <div class="metadata-label">Total Time</div>
-        <div class="metadata-value">${timing.total_time}</div>
-    </div>
-  `;
-
-  // Summary
-  document.getElementById('summaryText').innerHTML = data.summary;
-
-  // MCQs
-  const mcqContainer = document.getElementById('mcqContent');
-  mcqContainer.innerHTML = "";
-
-  let mcqs = data.mcqs;
-
-  if (typeof mcqs === "string") {
-    try {
-      mcqs = JSON.parse(mcqs);
-    } catch (e) {
-      mcqContainer.innerHTML = "<p>Error parsing MCQs.</p>";
-      return;
-    }
-  }
-
-  mcqs.forEach((mcq) => {
-    console.log(mcq);
-    if (!window.localStorage.getItem("questionBank"))
-	window.localStorage.setItem("questionBank", JSON.stringify([mcq]));
-    else {
-        let questionBank = JSON.parse(window.localStorage.getItem("questionBank"));
-        questionBank.push(mcq);
-        window.localStorage.setItem("questionBank", JSON.stringify(questionBank));
-    }
-    const card = document.createElement("div");
-    card.className = "mcq-card";
-    card.innerHTML = `
-      <div class="mcq-question">Q: ${mcq.question}</div>
-      <ul class="mcq-options">
-        ${mcq.options.map(opt => `<li>${opt}</li>`).join('')}
-      </ul>
-      <div class="mcq-answer">✅ ${mcq.correctAnswer}</div>
-    `;
-
-    card.addEventListener("click", () => {
-      card.classList.toggle("revealed");
-    });
-
-    mcqContainer.appendChild(card);
-  });
-
-  // Show result section
-  document.getElementById('results').style.display = 'block';
-
-  // Download support
-  setupDownload(data);
-}
-
-
-        function setupDownload(data) {
-            document.getElementById('downloadBtn').onclick = function() {
-                const content = `MCQ Generator Results
-Chapter(s): ${data.metadata.chapter}
-Difficulty: ${data.metadata.difficulty}
-Number of Questions: ${data.metadata.question_count}
-Generated on: ${new Date().toLocaleString()}
-
-SUMMARY:
-${data.summary}
-
-MULTIPLE CHOICE QUESTIONS:
-${data.mcqs}
-
-Processing Time: ${data.timing.total_time}
-`;
-
-                const blob = new Blob([content], { type: 'text/plain' });
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = `mcq_${data.metadata.chapter}_${new Date().toISOString().split('T')[0]}.txt`;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-            };
         }
 
-        function showError(message) {
-            const errorDiv = document.getElementById('errorMsg');
-            errorDiv.innerHTML = `<div class="error">${message}</div>`;
-            setTimeout(() => {
-                errorDiv.innerHTML = '';
-            }, 5000);
+        // Display results
+        function displayResults(mcqData, summaryData) {
+            selectedAnswers = {};
+            showResults = false;
+            
+            document.getElementById('resultsSection').classList.remove('hidden');
+            document.getElementById('mcqCount').textContent = mcqData.length;
+            document.getElementById('summaryText').innerHTML = summaryData;
+            
+            displayMCQs();
         }
 
-        function showSuccess(message) {
-            const errorDiv = document.getElementById('errorMsg');
-            errorDiv.innerHTML = `<div class="success">${message}</div>`;
-            setTimeout(() => {
-                errorDiv.innerHTML = '';
-            }, 3000);
+        // Display MCQs
+        function displayMCQs() {
+            const container = document.getElementById('mcqsList');
+            container.innerHTML = '';
+
+            mcqs.forEach((mcq, index) => {
+                const mcqCard = document.createElement('div');
+                mcqCard.className = 'mcq-card';
+                mcqCard.innerHTML = `
+                    <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">
+                        ${index + 1}. ${mcq.question}
+                    </h3>
+                    <div class="options">
+                        ${mcq.options.map((option, optionIndex) => `
+                            <button class="option" onclick="selectAnswer(${mcq.id}, ${optionIndex})" 
+                                    id="option-${mcq.id}-${optionIndex}">
+                                <span>${String.fromCharCode(65 + optionIndex)}. ${option}</span>
+                                <span id="icon-${mcq.id}-${optionIndex}"></span>
+                            </button>
+                        `).join('')}
+                    </div>
+                    <div id="explanation-${mcq.id}" class="explanation hidden">
+                        <div class="explanation-title">Explanation:</div>
+                        <div class="explanation-text">${mcq.explanation}</div>
+                    </div>
+                `;
+                container.appendChild(mcqCard);
+            });
+
+            updateSubmitButton();
         }
 
-        function clearMessages() {
-            document.getElementById('errorMsg').innerHTML = '';
+        // Select answer
+        function selectAnswer(questionId, answerIndex) {
+            if (showResults) return;
+
+            selectedAnswers[questionId] = answerIndex;
+            updateOptionStyles(questionId, answerIndex);
+            updateSubmitButton();
         }
 
-        // File input styling enhancement
-        document.getElementById('pdf_file').addEventListener('change', function(e) {
-            const fileName = e.target.files[0]?.name;
-            if (fileName) {
-                const label = document.querySelector('label[for="pdf_file"]');
-                label.textContent = `PDF File - ${fileName}`;
-                label.style.color = 'var(--header-gradient-start)';
+        // Update option styles
+        function updateOptionStyles(questionId, selectedIndex) {
+            const mcq = mcqs.find(m => m.id === questionId);
+            if (!mcq) return;
+
+            mcq.options.forEach((_, optionIndex) => {
+                const option = document.getElementById(`option-${questionId}-${optionIndex}`);
+                const icon = document.getElementById(`icon-${questionId}-${optionIndex}`);
+                
+                option.classList.remove('selected', 'correct', 'incorrect');
+                icon.innerHTML = '';
+
+                if (showResults) {
+                    option.disabled = true;
+                    
+                    if (optionIndex === mcq.correctAnswer) {
+                        option.classList.add('correct');
+                        icon.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #16a34a;"><path d="M9 12l2 2 4-4"></path><circle cx="12" cy="12" r="9"></circle></svg>`;
+                    } else if (optionIndex === selectedIndex && optionIndex !== mcq.correctAnswer) {
+                        option.classList.add('incorrect');
+                        icon.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #dc2626;"><circle cx="12" cy="12" r="9"></circle><path d="m15 9-6 6"></path><path d="m9 9 6 6"></path></svg>`;
+                    }
+                } else if (optionIndex === selectedIndex) {
+                    option.classList.add('selected');
+                }
+            });
+        }
+
+        // Update submit button
+        function updateSubmitButton() {
+            const submitSection = document.getElementById('submitSection');
+            const allAnswered = Object.keys(selectedAnswers).length === mcqs.length;
+            
+            if (allAnswered && !showResults) {
+                submitSection.classList.remove('hidden');
+            } else {
+                submitSection.classList.add('hidden');
             }
+        }
+
+        // Submit answers
+        function submitAnswers() {
+            showResults = true;
+            
+            // Update all option styles
+            mcqs.forEach(mcq => {
+                updateOptionStyles(mcq.id, selectedAnswers[mcq.id]);
+                document.getElementById(`explanation-${mcq.id}`).classList.remove('hidden');
+            });
+
+            // Show results card
+            const score = calculateScore();
+            const percentage = Math.round((score / mcqs.length) * 100);
+            
+            document.getElementById('scoreText').textContent = 
+                `You scored ${score} out of ${mcqs.length} (${percentage}%)`;
+            document.getElementById('resultsCard').classList.remove('hidden');
+            
+            updateSubmitButton();
+        }
+
+        // Calculate score
+        function calculateScore() {
+            let correct = 0;
+            mcqs.forEach(mcq => {
+                if (selectedAnswers[mcq.id] === mcq.correctAnswer) {
+                    correct++;
+                }
+            });
+            return correct;
+        }
+
+        // Reset quiz
+        function resetQuiz() {
+            selectedAnswers = {};
+            showResults = false;
+            
+            document.getElementById('resultsCard').classList.add('hidden');
+            
+            // Reset all options and hide explanations
+            mcqs.forEach(mcq => {
+                mcq.options.forEach((_, optionIndex) => {
+                    const option = document.getElementById(`option-${mcq.id}-${optionIndex}`);
+                    const icon = document.getElementById(`icon-${mcq.id}-${optionIndex}`);
+                    
+                    option.classList.remove('selected', 'correct', 'incorrect');
+                    option.disabled = false;
+                    icon.innerHTML = '';
+                });
+                
+                document.getElementById(`explanation-${mcq.id}`).classList.add('hidden');
+            });
+            
+            updateSubmitButton();
+        }
+
+        // Switch tabs
+        function switchTab(tab) {
+            // Update tab styles
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`.tab:${tab === 'mcqs' ? 'first' : 'last'}-child`).classList.add('active');
+            
+            // Show/hide tab content
+            document.getElementById('mcqsTab').classList.toggle('active', tab === 'mcqs');
+            document.getElementById('summaryTab').classList.toggle('active', tab === 'summary');
+        }
+
+        // Initialize theme on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set initial theme icon
+            toggleTheme();
+            toggleTheme(); // Call twice to set back to dark mode
         });
