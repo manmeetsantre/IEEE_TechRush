@@ -682,7 +682,7 @@
 
  Listen to Summary
                         </button>
-                        <audio id="my-audio" src="{{ url_for('static', filename='audio.wav') }}"></audio>
+                        <audio id="my-audio"></audio>
 
 
 
@@ -691,12 +691,26 @@ const audio = document.getElementById('my-audio');
 const toggleBtn = document.getElementById('audio-toggle');
 
 toggleBtn.addEventListener('click', () => {
-    if (audio.paused) {
+    if (audio.src == "http://localhost:5000/") {
+	audio.src="{{ url_for('static', filename='audio.wav') }}"
+	console.log('hi there');
         audio.play();
-        
+	toggleBtn.innerHTML = `
+	<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pause-icon lucide-pause"><rect x="14" y="3" width="5" height="18" rx="1"/><rect x="5" y="3" width="5" height="18" rx="1"/></svg>
+	Pause Listening
+	`
+    } else if (audio.paused) {
+        audio.play();
+	toggleBtn.innerHTML = `
+	<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pause-icon lucide-pause"><rect x="14" y="3" width="5" height="18" rx="1"/><rect x="5" y="3" width="5" height="18" rx="1"/></svg>
+	Pause Listening
+	`
     } else {
         audio.pause();
-        
+	toggleBtn.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-play-icon lucide-play"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"></path></svg>
+ 	Listen to Summary
+	`
     }
     
 });
@@ -877,7 +891,7 @@ toggleBtn.addEventListener('click', () => {
         function displayResults(mcqData, summaryData) {
             selectedAnswers = {};
             showResults = false;
-            
+            document.getElementById('my-audio').src = "";
             document.getElementById('resultsSection').classList.remove('hidden');
             document.getElementById('mcqCount').textContent = mcqData.length;
             document.getElementById('summaryText').innerHTML = summaryData;

@@ -205,7 +205,7 @@ def summary(text):
     prompt = f"Please create the summary for following text: {text}.\nDirectly begin with summary. Make it readable by a common user, making the PDF simple to understand. You can also use markdown to make it visually appealing. However make sure it remains formal in nature, do not be too casual/informal. Also make sure the summary is concise, do not make it too long. Make sure to retain the language of the text. That is, if the text is in Hindi, keep your response in Hindi too. Try to use markdown as much as possible. Use formatting techniques like giving proper heading format to title, bullet points, etc. to make it look visually appealing."
     response_text = markdown(gemini_model.generate_content(contents=prompt).text)
     audio_path = os.path.join(STATIC_FOLDER, "audio.wav")
-    with wave.open("audio_path", "wb") as wav_file:
+    with wave.open(audio_path, "wb") as wav_file:
         voice.synthesize_wav(BeautifulSoup(response_text, 'html.parser').get_text(), wav_file)
     # markdown makes the summary display better on frontend
     return response_text
