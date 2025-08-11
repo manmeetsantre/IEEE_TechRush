@@ -76,10 +76,11 @@
             </div>
 
             <button id="generateBtn" class="btn btn-primary btn-full mt-6" onclick="generateMCQs()">
-		<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sparkle-icon lucide-sparkle">
-            <path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/>
+		<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-tags-icon lucide-tags">
+            <path d="M13.172 2a2 2 0 0 1 1.414.586l6.71 6.71a2.4 2.4 0 0 1 0 3.408l-4.592 4.592a2.4 2.4 0 0 1-3.408 0l-6.71-6.71A2 2 0 0 1 6 9.172V3a1 1 0 0 1 1-1z"/>
+            <path d="M2 7v6.172a2 2 0 0 0 .586 1.414l6.71 6.71a2.4 2.4 0 0 0 3.191.193"/><circle cx="10.5" cy="6.5" r=".5" fill="currentColor"/>
         </svg>
-                GENERATE MCQS
+                EXTRACT TOPICS
             </button>
         </div>
 
@@ -206,6 +207,7 @@ toggleBtn.addEventListener('click', () => {
         let selectedAnswers = {};
         let showResults = false;
         let currentTheme = 'dark';
+        let topicsExtracted = false;
 
         const elements = {
             downloadPdf: document.getElementById('downloadPdf'),
@@ -262,6 +264,8 @@ toggleBtn.addEventListener('click', () => {
                 formData.append('difficulty', document.getElementById('difficulty').value);
                 formData.append('chapter', document.getElementById('chapters').value);
                 formData.append('provider', document.getElementById('provider').value);
+                formData.append('topicsExtracted', topicsExtracted);
+
                 // Replace with your Flask backend URL
                 const response = await fetch('http://localhost:5000/' || 'http://127.0.0.1:5000/', {
                     method: 'POST',
@@ -270,6 +274,7 @@ toggleBtn.addEventListener('click', () => {
 
                 if (response.ok) {
                     const data = await response.json();
+                    if (topicsExtracted) {
                     mcqs = data.mcqs;
                     const summary = data.summary || '';
 
@@ -299,12 +304,23 @@ toggleBtn.addEventListener('click', () => {
             mcqs: mcqs
         });
         localStorage.setItem('mcqHistory', JSON.stringify(history));
-
-    
                     displayResults(mcqs, summary);
-                } else {
-                    throw new Error('Failed to generate MCQs');
+                    topicsExtracted = false;
+                } else if (!topicsExtracted) {
+                    console.log(data.topics);
+                    btn.children[0].outerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-tags-icon lucide-tags">
+                        <path d="M13.172 2a2 2 0 0 1 1.414.586l6.71 6.71a2.4 2.4 0 0 1 0 3.408l-4.592 4.592a2.4 2.4 0 0 1-3.408 0l-6.71-6.71A2 2 0 0 1 6 9.172V3a1 1 0 0 1 1-1z"/>
+                        <path d="M2 7v6.172a2 2 0 0 0 .586 1.414l6.71 6.71a2.4 2.4 0 0 0 3.191.193"/>
+                        <circle cx="10.5" cy="6.5" r=".5" fill="currentColor"/>
+                    </svg>
+                    `
+                    // TOPIC CODE HEREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+                    topicsExtracted = true;
                 }
+                else {
+                    throw new Error('Failed to generate MCQs');
+                }}
             } catch (error) {
                 console.error('Error generating MCQs:', error);
                 // Mock data for demonstration
