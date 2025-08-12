@@ -572,53 +572,70 @@ function renderQuizAnalysis() {
             toggleTheme(); // Call twice to set back to dark mode
         });
 
-            function loadHistory() {
-                const history = JSON.parse(localStorage.getItem('mcqHistory') || '[]');
-                const container = document.getElementById('historyList');
-                container.innerHTML = '';
+        function loadHistory() {
+    const history = JSON.parse(localStorage.getItem('mcqHistory') || '[]');
+    const container = document.getElementById('historyList');
+    container.innerHTML = '';
 
-                if (history.length === 0) {
-                    container.innerHTML = '<p>No history found.</p>';
-                    return;
-                }
+    if (history.length === 0) {
+        container.innerHTML = '<p>No history found.</p>';
+        return;
+    }
 
-        history.forEach((entry, index) => {
-            const mcqs = entry.mcqs;
-
-            if (Array.isArray(mcqs) && mcqs.length > 0) {
-                mcqs.map(mcq => console.log(mcq.question));
-            } else {
-                console.error('mcqs is not an array or is empty.');
-            }
-
-            const entryDiv = document.createElement('div');
-            entryDiv.className = 'mcq-card';
-            entryDiv.innerHTML = `
-                <h3 style="margin-bottom: 0.5rem;">Quiz ${index + 1} - ${entry.difficulty} - ${entry.topic}</h3>
-                <small>${new Date(entry.timestamp).toLocaleString()}</small>
-                <ul style="margin-top: 0.5rem;">
-                    ${Array.isArray(mcqs) && mcqs.length > 0
-                        ? mcqs.map(mcq => `<li>${mcq.question}</li>`).join('')
-                        : '<li>No questions available</li>'
-                    }
-                </ul>
-            <br>
-            <button class="action-btn view-btn" onclick="loadHistoryMCQs(${index})">
+    history.forEach((entry, index) => {
+        const entryDiv = document.createElement('div');
+        entryDiv.className = 'mcq-card';
+        entryDiv.innerHTML = `
+            <h3 style="margin-bottom: 0.5rem;">Quiz ${index + 1} - ${entry.difficulty} - ${entry.topic}</h3>
+            <small>${new Date(entry.timestamp).toLocaleString()}</small>
+            <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                <button class="action-btn view-btn" onclick="loadHistoryMCQs(${index})">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye">
                         <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
                         <circle cx="12" cy="12" r="3"></circle>
                     </svg>
                     <span>Preview</span>
-                </button> 
-            `;
-            container.appendChild(entryDiv);
-        });
-            }
+                </button>
+                <button class="action-btn delete-btn" onclick="deleteHistoryItem(${index})">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2">
+                        <path d="M3 6h18"></path>
+                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
+                    <span>Delete</span>
+                </button>
+            </div>
+        `;
+        container.appendChild(entryDiv);
+    });
+}
+
+// New function to delete specific history items
+function deleteHistoryItem(index) {
+    if (confirm("Are you sure you want to delete this quiz from history?")) {
+        const history = JSON.parse(localStorage.getItem('mcqHistory') || '[]');
+        history.splice(index, 1);
+        localStorage.setItem('mcqHistory', JSON.stringify(history));
+        loadHistory(); // Refresh the history display
+        
+        // If we're deleting the currently viewed quiz, clear the view
+        if (quizId === index) {
+            mcqs = [];
+            document.getElementById('mcqsList').innerHTML = '';
+            document.getElementById('resultsSection').classList.add('hidden');
+            document.getElementById('mcqCount').textContent = '0';
+            quizId = null;
+        }
+    }
+}
         function loadHistoryMCQs(index) {
             const history = JSON.parse(localStorage.getItem('mcqHistory') || '[]');
             if (index >= 0 && index < history.length) {
                 mcqs = history[index].mcqs;
-		summary = history[index].summary;
+		            summary = history[index].summary;
+                quizId = index; // Store the current quiz ID
                 displayResults(mcqs, summary);
                 switchTab('mcqs');
             }
@@ -631,15 +648,32 @@ function renderQuizAnalysis() {
         }
 
         // Delete MCQs
-        function deleteMCQs() {
-            if (confirm("Are you sure you want to delete these MCQs?")) {
-                mcqs = [];
-                document.getElementById('mcqsList').innerHTML = '';
-                document.getElementById('resultsSection').classList.add('hidden');
-                document.getElementById('mcqCount').textContent = '0';
-		        localStorage.setItem('mcqHistory', '')
+  function deleteMCQs() {
+    if (confirm("Are you sure you want to delete these MCQs?")) {
+        // Only proceed if we have a valid quizId
+        if (quizId !== null) {
+            const history = JSON.parse(localStorage.getItem('mcqHistory') || '[]');
+            
+            // Remove the specific quiz from history
+            history.splice(quizId, 1);
+            localStorage.setItem('mcqHistory', JSON.stringify(history));
+            
+            // Reset the UI
+            mcqs = [];
+            document.getElementById('mcqsList').innerHTML = '';
+            document.getElementById('resultsSection').classList.add('hidden');
+            document.getElementById('mcqCount').textContent = '0';
+            quizId = null; // Reset the quizId
+            
+            // Reload history if we're on that tab
+            if (document.getElementById('historyTab').classList.contains('active')) {
+                loadHistory();
             }
+        } else {
+            alert("No quiz selected to delete.");
         }
+    }
+}
 
 let startTime;
 let updatedTime;
