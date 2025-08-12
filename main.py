@@ -140,7 +140,9 @@ def home():
                     "total_time": f"{total_time:.2f}s"
                 }
             })
-
+    else:
+        # resetting the flag whenever user reloads (GET request)
+        topicsExtracted = False
     return render_template('index.html')
 
 @app.route('/download/pdf', methods=['GET'])
@@ -244,13 +246,18 @@ def extract_text_from_pdf(pdf_file):
     return text, "ocr"
 
 def topic_extraction(text):
-    prompt = f"""You are tasked with summarizing educational content. Identify up to 5 key educational themes from the provided text. 
+    prompt = f"""You are tasked with summarizing educational content. Identify around 10 key educational themes from the provided text. 
     Guidelines:
 
     Each theme should be a concise noun phrase (maximum 3 words, maximum 20 characters).
     No explanations, examples, quotes, or brackets.
     Avoid vague terms (e.g., "things", "concepts", "nature").
     Ensure no repetition or topic titles.
+    The topics should be generic enough so that
+    Topic tagging must follow the specified instructions:
+    * the topic must not be too generic (i.e. Science, Engineering, etc.)
+    * the topic must not be too specific (i.e. Proof-Of-Work, Merkle Tree, etc.)
+    * the topic must be such that one can get a good amount of questions belonging to a certain topic, such that the topics can be later filtered by the user
 
 Output format (JSON array of strings):
 [
@@ -302,10 +309,6 @@ Requirements:
   * concise explanation
   * difficulty rating
   * topic tag
-- topic tagging must follow the specified instructions:
-  * the topic must not be too generic (i.e. Science, Engineering, etc.)
-  * the topic must not be too specific (i.e. Proof-Of-Work, Merkle Tree, etc.)
-  * the topic must be such that one can get a good amount of questions belonging to a certain topic, such that the topics can be later filtered by the user
 - make sure to preserve the language of the text extracted from PDF, that is, if the text is in Hindi, your response must be in Hindi too
 - make sure that the generated topics are strictly as given above, that is, the generated questions must strictly belong to topics: {topic}
 - the format must be in json, as specified below:

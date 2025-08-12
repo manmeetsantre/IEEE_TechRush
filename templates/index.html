@@ -45,16 +45,7 @@
                     <!-- Topic Badges Section -->
                     <label class="label" style="margin-top: 1rem;">TOPICS</label>
                     <div class="topic-badges-container">
-                        <div class="topic-badge-selector" onclick="toggleTopic(this, 'Science')">Science</div>
-                        <div class="topic-badge-selector" onclick="toggleTopic(this, 'Mathematics')">Mathematics</div>
-                        <div class="topic-badge-selector" onclick="toggleTopic(this, 'History')">History</div>
-                        <div class="topic-badge-selector" onclick="toggleTopic(this, 'Geography')">Geography</div>
-                        <div class="topic-badge-selector" onclick="toggleTopic(this, 'Computer Science')">Computer Science</div>
-                        <div class="topic-badge-selector" onclick="toggleTopic(this, 'Literature')">Literature</div>
-                        <div class="topic-badge-selector" onclick="toggleTopic(this, 'Physics')">Physics</div>
-                        <div class="topic-badge-selector" onclick="toggleTopic(this, 'Chemistry')">Chemistry</div>
-                        <div class="topic-badge-selector" onclick="toggleTopic(this, 'Biology')">Biology</div>
-                        <div class="topic-badge-selector" onclick="toggleTopic(this, 'Economics')">Economics</div>
+                        No topics added yet. Extract them!
                     </div>
                 </div>
 
@@ -134,13 +125,6 @@
                     </button>
 		</div>
 		<div class="action-buttons-right">
-                    <button class="action-btn view-btn" onclick="previewMCQs()">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye">
-                            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
-                            <circle cx="12" cy="12" r="3"/>
-                        </svg>
-                        <span>Preview</span>
-                    </button>
                     <button class="action-btn delete-btn" onclick="deleteMCQs()">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2">
                             <path d="M3 6h18"/>
@@ -279,6 +263,21 @@ toggleBtn.addEventListener('click', () => {
             }
         }
 
+        function toggleTopic(element, topic) {
+            if (element.classList) {
+                element.classList.toggle("selected");
+                const index = selectedTopics.indexOf(topic);
+                if (index === -1) {
+                    selectedTopics.push(topic);
+                } else {
+                    selectedTopics.splice(index, 1);
+                }
+                document.getElementById('topics').value = selectedTopics.length > 0 ? selectedTopics.join(', ') : 'All';
+            } else {
+                console.error("Element does not have classList property.");
+            }
+        }
+
         // Toggle topic selection
         function toggleTopic(element, topic) {
             element.classList.toggle('selected');
@@ -345,7 +344,8 @@ toggleBtn.addEventListener('click', () => {
             timestamp: new Date().toISOString(),
             topic: document.getElementById('topics').value,
             difficulty: document.getElementById('difficulty').value,
-            mcqs: mcqs
+            mcqs: mcqs,
+	    summary: summary
         });
         localStorage.setItem('mcqHistory', JSON.stringify(history));
         }
@@ -360,7 +360,19 @@ toggleBtn.addEventListener('click', () => {
                         <circle cx="10.5" cy="6.5" r=".5" fill="currentColor"/>
                     </svg>
                     `
-                    // TOPIC CODE HEREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+		    topicDiv = document.querySelector(".topic-badges-container");
+		    topicDiv.innerHTML = "";
+		    topics = JSON.parse(data.topics);
+		  for (let i = 0; i < topics.length; i++) {
+    let div = document.createElement("div");
+    div.className = "topic-badge-selector";
+    div.textContent = topics[i];
+
+    // Pass the current div instead of self
+    div.onclick = () => toggleTopic(div, topics[i]);
+    
+    topicDiv.appendChild(div);
+}
                     topicsExtracted = true;
                 }
                 else {
@@ -719,7 +731,14 @@ history.forEach((entry, index) => {
                 : '<li>No questions available</li>'
             }
         </ul>
-        <button class="btn btn-secondary" style="margin-top: 0.5rem;" onclick="loadHistoryMCQs(${index})">View All</button>
+	<br>
+	<button class="action-btn view-btn" onclick="loadHistoryMCQs(${index})">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye">
+                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            <span>Preview</span>
+        </button> 
     `;
     container.appendChild(entryDiv);
 });
@@ -728,7 +747,8 @@ history.forEach((entry, index) => {
             const history = JSON.parse(localStorage.getItem('mcqHistory') || '[]');
             if (index >= 0 && index < history.length) {
                 mcqs = history[index].mcqs;
-                displayResults(mcqs, '');
+		summary = history[index].summary;
+                displayResults(mcqs, summary);
                 switchTab('mcqs');
             }
         }
@@ -746,6 +766,7 @@ history.forEach((entry, index) => {
                 document.getElementById('mcqsList').innerHTML = '';
                 document.getElementById('resultsSection').classList.add('hidden');
                 document.getElementById('mcqCount').textContent = '0';
+		localStorage.setItem('mcqHistory', '')
             }
         }
 
