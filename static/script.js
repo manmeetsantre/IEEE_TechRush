@@ -5,6 +5,14 @@
         let selectedAnswers = {};
         let showResults = false;
         let currentTheme = 'dark';
+        let topicsExtracted = false;
+	    let selectedTopics = [];
+
+        const elements = {
+            downloadPdf: document.getElementById('downloadPdf'),
+            downloadTxt: document.getElementById('downloadTxt'),
+            toggleAnswers: document.getElementById('toggleAnswers')
+        };
 
         // Theme toggle
         function toggleTheme() {
@@ -34,6 +42,33 @@
             }
         }
 
+        function toggleTopic(element, topic) {
+            if (element.classList) {
+                element.classList.toggle("selected");
+                const index = selectedTopics.indexOf(topic);
+                if (index === -1) {
+                    selectedTopics.push(topic);
+                } else {
+                    selectedTopics.splice(index, 1);
+                }
+                document.getElementById('topics').value = selectedTopics.length > 0 ? selectedTopics.join(', ') : 'All';
+            } else {
+                console.error("Element does not have classList property.");
+            }
+        }
+
+        // Toggle topic selection
+        function toggleTopic(element, topic) {
+            element.classList.toggle('selected');
+            const index = selectedTopics.indexOf(topic);
+            if (index === -1) {
+                selectedTopics.push(topic);
+            } else {
+                selectedTopics.splice(index, 1);
+            }
+            document.getElementById('topics').value = selectedTopics.length > 0 ? selectedTopics.join(', ') : 'All';
+        }
+
         // Generate MCQs
         async function generateMCQs() {
             if (!currentFile) {
@@ -43,40 +78,85 @@
 
             const btn = document.getElementById('generateBtn');
             btn.disabled = true;
-            btn.innerHTML = `
-                <div class="loading"></div>
-                Generating MCQs...
+	    if (topicsExtracted) {
+                btn.innerHTML = `
+                    <div class="loading"></div>
+                    Generating MCQs...
+                `;
+	    } else {
+		btn.innerHTML = `
+                    <div class="loading"></div>
+                    Extracting topics...
             `;
+	    }
 
             try {
                 const formData = new FormData();
                 formData.append('pdf_file', currentFile);
                 formData.append('question_count', document.getElementById('numQuestions').value);
                 formData.append('difficulty', document.getElementById('difficulty').value);
-                formData.append('chapter', document.getElementById('chapters').value);
+                formData.append('topic', document.getElementById('topics').value);
+                formData.append('provider', document.getElementById('provider').value);
+                formData.append('topicsExtracted', topicsExtracted);
 
                 // Replace with your Flask backend URL
-                const response = await fetch('http://localhost:5000/', {
+                const response = await fetch('http://localhost:5000/' || 'http://127.0.0.1:5000/', {
                     method: 'POST',
                     body: formData,
                 });
 
                 if (response.ok) {
                     const data = await response.json();
+                    if (topicsExtracted) {
                     mcqs = data.mcqs;
                     const summary = data.summary || '';
+
 		    if (typeof mcqs === "string") {
-                      try {
-                        mcqs = JSON.parse(mcqs);
-                      } catch (e) {
-                        mcqContainer.innerHTML = "<p>Error parsing MCQs.</p>";
-                        return;
-                      }
-                    }
+            try {
+                mcqs = JSON.parse(mcqs);
+            } catch (e) {
+                console.error("Error parsing MCQs:", e);
+                mcqs = [];
+            }
+            let history = JSON.parse(localStorage.getItem('mcqHistory') || '[]');
+        history.push({
+            timestamp: new Date().toISOString(),
+            topic: document.getElementById('topics').value,
+            difficulty: document.getElementById('difficulty').value,
+            mcqs: mcqs,
+	    summary: summary
+        });
+        localStorage.setItem('mcqHistory', JSON.stringify(history));
+        }
                     displayResults(mcqs, summary);
-                } else {
-                    throw new Error('Failed to generate MCQs');
+                    topicsExtracted = false;
+                } else if (!topicsExtracted) {
+                    console.log(data.topics);
+                    btn.children[0].outerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-tags-icon lucide-tags">
+                        <path d="M13.172 2a2 2 0 0 1 1.414.586l6.71 6.71a2.4 2.4 0 0 1 0 3.408l-4.592 4.592a2.4 2.4 0 0 1-3.408 0l-6.71-6.71A2 2 0 0 1 6 9.172V3a1 1 0 0 1 1-1z"/>
+                        <path d="M2 7v6.172a2 2 0 0 0 .586 1.414l6.71 6.71a2.4 2.4 0 0 0 3.191.193"/>
+                        <circle cx="10.5" cy="6.5" r=".5" fill="currentColor"/>
+                    </svg>
+                    `
+		    topicDiv = document.querySelector(".topic-badges-container");
+		    topicDiv.innerHTML = "";
+		    topics = JSON.parse(data.topics);
+		  for (let i = 0; i < topics.length; i++) {
+        let div = document.createElement("div");
+        div.className = "topic-badge-selector";
+        div.textContent = topics[i];
+
+        // Pass the current div instead of self
+        div.onclick = () => toggleTopic(div, topics[i]);
+        
+        topicDiv.appendChild(div);
+            }
+                    topicsExtracted = true;
                 }
+                else {
+                    throw new Error('Failed to generate MCQs');
+                }}
             } catch (error) {
                 console.error('Error generating MCQs:', error);
                 // Mock data for demonstration
@@ -123,15 +203,22 @@
                 displayResults(mcqs, summary);
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = `
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 8V4H8"></path>
-                        <path d="m8 4 4 4 6-6 2 2v4"></path>
-                        <path d="M2 14h12a2 2 0 1 1 0 4h-2"></path>
-                        <path d="m2 14 1.5-1.5c.5-.5 1.2-.5 1.7 0l4.8 4.8a2 2 0 0 0 2.8 0L15 15"></path>
-                    </svg>
-                    GENERATE MCQS
-                `;
+		if (topicsExtracted) {
+                	btn.innerHTML = `
+                    	<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sparkle-icon lucide-sparkle">
+                        <path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/>
+                    	</svg>
+                    	GENERATE MCQS
+                	`;
+		} else {
+			btn.innerHTML = `
+                    	<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-tags-icon lucide-tags">
+            <path d="M13.172 2a2 2 0 0 1 1.414.586l6.71 6.71a2.4 2.4 0 0 1 0 3.408l-4.592 4.592a2.4 2.4 0 0 1-3.408 0l-6.71-6.71A2 2 0 0 1 6 9.172V3a1 1 0 0 1 1-1z"/>
+            <path d="M2 7v6.172a2 2 0 0 0 .586 1.414l6.71 6.71a2.4 2.4 0 0 0 3.191.193"/><circle cx="10.5" cy="6.5" r=".5" fill="currentColor"/>
+        </svg>
+                    	EXTRACT TOPICS
+                	`;
+		}
             }
         }
 
@@ -139,7 +226,7 @@
         function displayResults(mcqData, summaryData) {
             selectedAnswers = {};
             showResults = false;
-            
+            document.getElementById('my-audio').src = "";
             document.getElementById('resultsSection').classList.remove('hidden');
             document.getElementById('mcqCount').textContent = mcqData.length;
             document.getElementById('summaryText').innerHTML = summaryData;
@@ -155,29 +242,61 @@
             mcqs.forEach((mcq, index) => {
                 const mcqCard = document.createElement('div');
                 mcqCard.className = 'mcq-card';
-                mcqCard.innerHTML = `
-                    <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">
-                        ${index + 1}. ${mcq.question}
-                    </h3>
-                    <div class="options">
-                        ${mcq.options.map((option, optionIndex) => `
-                            <button class="option" onclick="selectAnswer(${mcq.id}, ${optionIndex})" 
-                                    id="option-${mcq.id}-${optionIndex}">
-                                <span>${String.fromCharCode(65 + optionIndex)}. ${option}</span>
-                                <span id="icon-${mcq.id}-${optionIndex}"></span>
-                            </button>
-                        `).join('')}
-                    </div>
-                    <div id="explanation-${mcq.id}" class="explanation hidden">
-                        <div class="explanation-title">Explanation:</div>
-                        <div class="explanation-text">${mcq.explanation}</div>
-                    </div>
+
+                // Header wrapper (topic badge + question)
+                const header = document.createElement('div');
+                header.className = 'mcq-header'; // flex container for nice layout
+
+                
+                // Question
+                const questionHeading = document.createElement('h3');
+                questionHeading.style.fontSize = '1.125rem';
+                questionHeading.style.fontWeight = '600';
+                questionHeading.innerHTML = `${index + 1}. ${mcq.question}`;
+                
+                // append heading to header (so topic + question are on same row)
+                header.appendChild(questionHeading);
+                
+                // Create topic badge
+                    const topicDiv = document.createElement('div');
+                    topicDiv.className = 'topic-badge';
+                    topicDiv.textContent = mcq.topic;
+                    header.appendChild(topicDiv);
+
+                // Options
+                const optionsContainer = document.createElement('div');
+                optionsContainer.className = 'options';
+                optionsContainer.innerHTML = mcq.options.map((option, optionIndex) => `
+                    <button class="option" onclick="selectAnswer(${mcq.id}, ${optionIndex})" 
+                            id="option-${mcq.id}-${optionIndex}">
+                        <span>${String.fromCharCode(65 + optionIndex)}. ${option}</span>
+                        <span id="icon-${mcq.id}-${optionIndex}"></span>
+                    </button>
+                `).join('');
+
+                // Explanation
+                const explanationDiv = document.createElement('div');
+                explanationDiv.id = `explanation-${mcq.id}`;
+                explanationDiv.className = 'explanation hidden';
+                explanationDiv.innerHTML = `
+                    <div class="explanation-title">Explanation:</div>
+                    <div class="explanation-text">${mcq.explanation}</div>
                 `;
+
+                // Append elements to MCQ card
+                mcqCard.appendChild(header);
+                mcqCard.appendChild(optionsContainer);
+                mcqCard.appendChild(explanationDiv);
+
+                // Append MCQ card to container
                 container.appendChild(mcqCard);
             });
 
             updateSubmitButton();
         }
+
+        
+        
 
         // Select answer
         function selectAnswer(questionId, answerIndex) {
@@ -228,6 +347,12 @@
             }
         }
 
+        function toggleAnswersVisibility() {
+            appState.showAnswers = !appState.showAnswers;
+            updateAnswersToggleButton();
+            updateMCQDisplay();
+        }
+
         // Submit answers
         function submitAnswers() {
             showResults = true;
@@ -260,6 +385,47 @@
             return correct;
         }
 
+        function setDownloadLoading(loading) {
+            appState.downloadLoading = loading;
+            elements.downloadPdf.disabled = loading;
+            elements.downloadTxt.disabled = loading;
+            
+            if (loading) {
+                elements.downloadPdf.classList.add('disabled');
+                elements.downloadTxt.classList.add('disabled');
+            } else {
+                elements.downloadPdf.classList.remove('disabled');
+                elements.downloadTxt.classList.remove('disabled');
+            }
+        }
+
+        // Fallback download as text
+        function downloadAsText() {
+            let content = `MCQ Quiz - ${appState.file?.name || 'Generated Quiz'}\n`;
+            content += '='.repeat(50) + '\n\n';
+            
+            appState.mcqs.forEach((mcq, index) => {
+                content += `${index + 1}. ${mcq.question}\n\n`;
+                mcq.options.forEach((option, optionIndex) => {
+                    const letter = String.fromCharCode(65 + optionIndex);
+                    const marker = optionIndex === mcq.correct_answer ? ' (CORRECT)' : '';
+                    content += `   ${letter}. ${option}${marker}\n`;
+                });
+                content += `\n   Explanation: ${mcq.explanation}\n\n`;
+                content += '-'.repeat(30) + '\n\n';
+            });
+            
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'MCQ_Quiz.txt';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+
+
         // Reset quiz
         function resetQuiz() {
             selectedAnswers = {};
@@ -286,14 +452,26 @@
 
         // Switch tabs
         function switchTab(tab) {
-            // Update tab styles
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelector(`.tab:${tab === 'mcqs' ? 'first' : 'last'}-child`).classList.add('active');
-            
-            // Show/hide tab content
+
+            if (tab === 'mcqs') {
+                document.querySelectorAll('.tab')[0].classList.add('active');
+            } else if (tab === 'summary') {
+                document.querySelectorAll('.tab')[1].classList.add('active');
+            } else if (tab === 'history') {
+                document.querySelectorAll('.tab')[2].classList.add('active');
+            }
+
             document.getElementById('mcqsTab').classList.toggle('active', tab === 'mcqs');
             document.getElementById('summaryTab').classList.toggle('active', tab === 'summary');
+            document.getElementById('historyTab').classList.toggle('active', tab === 'history');
+
+            if (tab === 'history') {
+                loadHistory();
+            }
         }
+
+
 
         // Initialize theme on page load
         document.addEventListener('DOMContentLoaded', function() {
@@ -301,3 +479,72 @@
             toggleTheme();
             toggleTheme(); // Call twice to set back to dark mode
         });
+
+            function loadHistory() {
+                const history = JSON.parse(localStorage.getItem('mcqHistory') || '[]');
+                const container = document.getElementById('historyList');
+                container.innerHTML = '';
+
+                if (history.length === 0) {
+                    container.innerHTML = '<p>No history found.</p>';
+                    return;
+                }
+
+        history.forEach((entry, index) => {
+            const mcqs = entry.mcqs;
+
+            if (Array.isArray(mcqs) && mcqs.length > 0) {
+                mcqs.map(mcq => console.log(mcq.question));
+            } else {
+                console.error('mcqs is not an array or is empty.');
+            }
+
+            const entryDiv = document.createElement('div');
+            entryDiv.className = 'mcq-card';
+            entryDiv.innerHTML = `
+                <h3 style="margin-bottom: 0.5rem;">Quiz ${index + 1} - ${entry.difficulty} - ${entry.topic}</h3>
+                <small>${new Date(entry.timestamp).toLocaleString()}</small>
+                <ul style="margin-top: 0.5rem;">
+                    ${Array.isArray(mcqs) && mcqs.length > 0
+                        ? mcqs.map(mcq => `<li>${mcq.question}</li>`).join('')
+                        : '<li>No questions available</li>'
+                    }
+                </ul>
+            <br>
+            <button class="action-btn view-btn" onclick="loadHistoryMCQs(${index})">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye">
+                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    <span>Preview</span>
+                </button> 
+            `;
+            container.appendChild(entryDiv);
+        });
+            }
+        function loadHistoryMCQs(index) {
+            const history = JSON.parse(localStorage.getItem('mcqHistory') || '[]');
+            if (index >= 0 && index < history.length) {
+                mcqs = history[index].mcqs;
+		summary = history[index].summary;
+                displayResults(mcqs, summary);
+                switchTab('mcqs');
+            }
+        }
+
+        // Preview MCQs
+        function previewMCQs() {
+            alert("Preview functionality will be implemented here");
+            // You can implement a modal or other UI to preview the MCQs
+        }
+
+        // Delete MCQs
+        function deleteMCQs() {
+            if (confirm("Are you sure you want to delete these MCQs?")) {
+                mcqs = [];
+                document.getElementById('mcqsList').innerHTML = '';
+                document.getElementById('resultsSection').classList.add('hidden');
+                document.getElementById('mcqCount').textContent = '0';
+		localStorage.setItem('mcqHistory', '')
+            }
+        }
