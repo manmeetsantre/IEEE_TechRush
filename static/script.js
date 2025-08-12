@@ -30,6 +30,17 @@ window.onclick = function(event) {
     }
 };
 
+function convertToSeconds(timeStr) {
+    // Split the input string into hours, minutes, and seconds
+    const [hours, minutes, seconds] = timeStr.split(':').map(Number);
+    
+    // Calculate total seconds
+    const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+    
+    // Return the formatted string
+    return totalSeconds;
+}
+
 function renderQuizAnalysis() {
     if (!mcqs.length) return;
     
@@ -50,8 +61,7 @@ function renderQuizAnalysis() {
         }
     });
     
-    // Time spent calculation (mock data for now)
-    const timeSpent = mcqs.length * 30; // Assuming 30 seconds per question
+    const timeSpent = document.getElementById('display').textContent;
     
     // Create analysis HTML
     container.innerHTML = `
@@ -67,11 +77,11 @@ function renderQuizAnalysis() {
                     <div class="stat-label">Accuracy</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">${timeSpent}s</div>
+                    <div class="stat-value">${convertToSeconds(timeSpent)}s</div>
                     <div class="stat-label">Time Spent</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">${Math.round(timeSpent/mcqs.length)}s</div>
+                    <div class="stat-value">${Math.round(convertToSeconds(timeSpent)/mcqs.length)}s</div>
                     <div class="stat-label">Avg Time per Q</div>
                 </div>
             </div>
@@ -648,9 +658,6 @@ let tInterval;
 let running = false;
 
 const display = document.getElementById("display");
-const startBtn = document.getElementById("startBtn");
-const stopBtn = document.getElementById("stopBtn");
-const resetBtn = document.getElementById("resetBtn");
 
 function startTimer() {
     if (!running) {
@@ -684,7 +691,3 @@ function updateTime() {
                         (minutes < 10 ? "0" + minutes : minutes) + ":" +
                         (seconds < 10 ? "0" + seconds : seconds);
 }
-
-startBtn.addEventListener("click", startTimer);
-stopBtn.addEventListener("click", stopTimer);
-resetBtn.addEventListener("click", resetTimer);
