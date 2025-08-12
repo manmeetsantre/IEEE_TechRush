@@ -321,11 +321,29 @@ Requirements:
 - topics: {topic}
 - each question must have:
   * clear question stem
-  * 4 options
   * correct answer (specify the number, that is, 0-3)
   * concise explanation
   * difficulty rating
   * topic tag
+  * create mcqs of single answer and true false type questions.
+  * also create fill in the blanks type questions and match the following type questions.
+  *  for single correct questions or other questions,  give 
+  "question type": "single_correct" or "true_false" or "fill_in_the_blanks" or "match_the_following" for this 
+  this should be the starting of the question. 
+- format the output as a JSON array of objects, each with:
+- "question": the question text
+- "options": an array of 4 options (A, B, C, D)
+- "correctAnswer": index of the correct option (0-3)
+- "explanation": why the correct answer is correct
+- "topic": relevant topic that the question belongs to
+- "question type": the type of question, which can be "single_correct", "true_false", "fill_in_the_blanks", or "match_the_following"
+  * Only one of the 4 options should be correct
+- Every question must have 4 options (A, B, C, D) in the JSON "options" field
+- Make sure to preserve the language of the original PDF text (e.g., Hindi stays Hindi)
+- If topic = 'All', you can choose appropriate topics yourself, but do not set every topic as "All"
+- Final output must be in pure JSON format:
+
+- options must be concise and relevant to the question
 - make sure to preserve the language of the text extracted from PDF, that is, if the text is in Hindi, your response must be in Hindi too
 - make sure that the generated topics are as given above, that is, the generated questions must belong to topics: {topic}
 - the only exception to the above rule is when the given topic {topic} is 'All', in which case you can craft your own topics.
