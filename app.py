@@ -80,7 +80,7 @@ def home():
         pdf_file = request.files.get('pdf_file')
         count = int(request.form.get('question_count', 5))
         difficulty = request.form.get('difficulty', 'Medium')
-        chapter = request.form.get('chapter', 'All')
+        topic = request.form.get('topic', 'All')
         provider = request.form.get('provider', 'gemini')
 
         if not pdf_file:
@@ -113,7 +113,7 @@ def home():
 
             # generate MCQs
             mcq_start = time.time()
-            mcqs = generate_mcqs(text, count=count, difficulty=difficulty, chapter=chapter, provider=provider)
+            mcqs = generate_mcqs(text, count=count, difficulty=difficulty, topic=topic, provider=provider)
             mcq_time = time.time() - mcq_start
             print(f"MCQ generation took {mcq_time} seconds")
 
@@ -127,7 +127,7 @@ def home():
                 "summary": summarized_text,
                 "mcqs": mcqs,
                 "metadata": {
-                    "chapter": chapter,
+                    "topic": topic,
                     "difficulty": difficulty,
                     "question_count": count,
                     "extraction_method": method,
@@ -250,7 +250,7 @@ def topic_extraction(text):
     Each theme should be a concise noun phrase (maximum 3 words, maximum 20 characters).
     No explanations, examples, quotes, or brackets.
     Avoid vague terms (e.g., "things", "concepts", "nature").
-    Ensure no repetition or chapter titles.
+    Ensure no repetition or topic titles.
 
 Output format (JSON array of strings):
 [
@@ -290,7 +290,7 @@ def summary(text):
     return response_text, response.json().get('total_duration', -1000)
 
 # uses Gemini to generate MCQs in JSON format
-def generate_mcqs(text, count, difficulty, chapter, provider):
+def generate_mcqs(text, count, difficulty, topic, provider):
     batch_size = 100
     final_response = ""
 
@@ -305,7 +305,7 @@ def generate_mcqs(text, count, difficulty, chapter, provider):
 Create {batch_count} multiple choice questions based on this text extracted from PDF:\n\n{text}
 Requirements:
 - difficulty: {difficulty}
-- chapter: {chapter}
+- topics: {topic}
 - each question must have:
   * clear question stem
   * 4 options
@@ -318,6 +318,7 @@ Requirements:
   * the topic must not be too specific (i.e. Proof-Of-Work, Merkle Tree, etc.)
   * the topic must be such that one can get a good amount of questions belonging to a certain topic, such that the topics can be later filtered by the user
 - make sure to preserve the language of the text extracted from PDF, that is, if the text is in Hindi, your response must be in Hindi too
+- make sure that the generated topics are strictly as given above, that is, the generated questions must strictly belong to topics: {topic}
 - the format must be in json, as specified below:
 [
     {{
@@ -390,7 +391,7 @@ PLEASE PLEASE PLEASE MAKE IT IN JSON ONLY. DO NOT GIVE ANY EXTRA TEXT IN THE BEG
                     mcq['correctAnswer'] = 0
             
             if 'topic' not in mcq or not str(mcq['topic']).strip():
-                mcq['topic'] = chapter
+                mcq['topic'] = topic
                 
             valid_mcqs.append(mcq)
     
