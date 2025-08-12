@@ -272,50 +272,50 @@
               style="font-size: 1.125rem; margin-bottom: 0.75rem"
             ></p>
             <div class="quizresults-flex">
-                    <button class="btn btn-secondary" onclick="resetQuiz()">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="lucide lucide-rotate-ccw-icon lucide-rotate-ccw"
-              >
-                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                <path d="M3 3v5h5" />
-              </svg>
-              Retake Quiz
-            </button>
-            <button
-              class="btn btn-secondary"
-              onclick="showAnalysisModal()"
-              action="/#analysisModal"
-              style="margin-top: 0.5rem"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="lucide lucide-bar-chart"
-              >
-                <line x1="12" y1="20" x2="12" y2="10"></line>
-                <line x1="18" y1="20" x2="18" y2="4"></line>
-                <line x1="6" y1="20" x2="6" y2="16"></line>
-              </svg>
-              <a href="#analysisModal" style="color: white, text-decoration: none;">View Analysis </a>
-            </button>
+              <button class="btn btn-secondary" onclick="resetQuiz()">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="lucide lucide-rotate-ccw-icon lucide-rotate-ccw"
+                >
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                  <path d="M3 3v5h5" />
+                </svg>
+                Retake Quiz
+              </button>
+              
+                <a
+                  href="#analysisModal"
+                  style="color: white; text-decoration: none">
+                  <button class="btn btn-secondary" onclick="showAnalysisModal()">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="lucide lucide-bar-chart"
+                >
+                  <line x1="12" y1="20" x2="12" y2="10"></line>
+                  <line x1="18" y1="20" x2="18" y2="4"></line>
+                  <line x1="6" y1="20" x2="6" y2="16"></line>
+                </svg>
+           
+              </button>
+                </a>
+              </button>
             </div>
-            
           </div>
 
           <div id="mcqsList"></div>
@@ -411,8 +411,7 @@
         </div>
       </div>
     </div>
-    <!-- Analysis Modal -->
-    <div id="analysisModal" class="modal">
+    <div id="analysisModal" class="modal" style="display: none">
       <div class="modal-content">
         <div class="card">
           <span class="close" onclick="closeAnalysisModal()">&times;</span>
