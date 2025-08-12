@@ -2,4 +2,6 @@
 venv
 en_US-lessac-high.onnx
 en_US-lessac-high.onnx.json
+hi_IN-pratham-medium.onnx
+hi_IN-pratham-medium.onnx.json
 audio.wav

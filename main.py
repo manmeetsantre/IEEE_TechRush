@@ -36,7 +36,11 @@ CORS(app)  # allows requests from other origins (frontend)
 # setup Gemini model
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 gemini_model = genai.GenerativeModel('gemini-2.0-flash')
-voice = PiperVoice.load("en_US-lessac-high.onnx")
+eng_voice = PiperVoice.load("en_US-lessac-high.onnx")
+hin_voice = PiperVoice.load("hi_IN-pratham-medium.onnx")
+
+def ishindi(text):
+    return any('\u0900' <= char <= '\u097F' for char in text)
 
 def generate_with_ollama(prompt):
     try:
@@ -253,11 +257,12 @@ def topic_extraction(text):
     No explanations, examples, quotes, or brackets.
     Avoid vague terms (e.g., "things", "concepts", "nature").
     Ensure no repetition or topic titles.
-    The topics should be generic enough so that
     Topic tagging must follow the specified instructions:
     * the topic must not be too generic (i.e. Science, Engineering, etc.)
     * the topic must not be too specific (i.e. Proof-Of-Work, Merkle Tree, etc.)
     * the topic must be such that one can get a good amount of questions belonging to a certain topic, such that the topics can be later filtered by the user
+    * the topics must be such that they can be used to tag questions later
+    * preserve the language (like if the text is in Hindi, the topics must be in Hindi too)
 
 Output format (JSON array of strings):
 [
@@ -279,6 +284,7 @@ Text:
 def summary(text):
     prompt = f"Please create the summary for following text: {text}.\nDirectly begin with summary. Make it readable by a common user, making the PDF simple to understand. You can also use markdown to make it visually appealing. However make sure it remains formal in nature, do not be too casual/informal. Also make sure the summary is concise, do not make it too long. Make sure to retain the language of the text. That is, if the text is in Hindi, keep your response in Hindi too. Try to use markdown as much as possible. Use formatting techniques like giving proper heading format to title, bullet points, etc. to make it look visually appealing."
     response_text = markdown(gemini_model.generate_content(contents=prompt).text)
+    voice = hin_voice if ishindi(text) else eng_voice
     audio_path = os.path.join(STATIC_FOLDER, "audio.wav")
     with wave.open(audio_path, "wb") as wav_file:
         voice.synthesize_wav(BeautifulSoup(response_text, 'html.parser').get_text(), wav_file)

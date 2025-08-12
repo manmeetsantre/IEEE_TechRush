@@ -36,7 +36,11 @@ CORS(app)  # allows requests from other origins (frontend)
 # setup Gemini model
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 gemini_model = genai.GenerativeModel('gemini-2.0-flash')
-voice = PiperVoice.load("en_US-lessac-high.onnx")
+eng_voice = PiperVoice.load("en_US-lessac-high.onnx")
+hin_voice = PiperVoice.load("hi_IN-pratham-medium.onnx")
+
+def ishindi(text):
+    return any('\u0900' <= char <= '\u097F' for char in text)
 
 def generate_with_ollama(prompt):
     try:
@@ -257,6 +261,8 @@ def topic_extraction(text):
     * the topic must not be too generic (i.e. Science, Engineering, etc.)
     * the topic must not be too specific (i.e. Proof-Of-Work, Merkle Tree, etc.)
     * the topic must be such that one can get a good amount of questions belonging to a certain topic, such that the topics can be later filtered by the user
+    * the topics must be such that they can be used to tag questions later
+    * preserve the language (like if the text is in Hindi, the topics must be in Hindi too)
 
 Output format (JSON array of strings):
 [
@@ -290,6 +296,7 @@ def summary(text):
                              data=json.dumps(data))
     response_text = markdown(response.json().get('response', 'Error: No response field found'))
     audio_path = os.path.join(STATIC_FOLDER, "audio.wav")
+    voice = hin_voice if ishindi(text) else eng_voice
     with wave.open(audio_path, "wb") as wav_file:
         voice.synthesize_wav(BeautifulSoup(response_text, 'html.parser').get_text(), wav_file)
     # markdown makes the summary display better on frontend
