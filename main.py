@@ -316,7 +316,9 @@ Requirements:
   * difficulty rating
   * topic tag
 - make sure to preserve the language of the text extracted from PDF, that is, if the text is in Hindi, your response must be in Hindi too
-- make sure that the generated topics are strictly as given above, that is, the generated questions must strictly belong to topics: {topic}
+- make sure that the generated topics are as given above, that is, the generated questions must belong to topics: {topic}
+- the only exception to the above rule is when the given topic {topic} is 'All', in which case you can craft your own topics.
+- If {topic} is equal to 'All', then you must craft your own topics. Do not make every question's topic as All.
 - the format must be in json, as specified below:
 [
     {{
