@@ -1,227 +1,428 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MCQ Generator</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.js"></script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-</head>
-<body class="theme-dark">
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='styles.css') }}"
+    />
+  </head>
+  <body class="theme-dark">
     <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <div class="header-content">
-                <h1>MCQ Generator</h1>
-                <p>Upload a PDF and generate multiple choice questions automatically</p>
+      <!-- Header -->
+      <div class="header">
+        <div class="header-content">
+          <h1>MCQ Generator</h1>
+          <p>
+            Upload a PDF and generate multiple choice questions automatically
+          </p>
+        </div>
+        <button class="theme-toggle" onclick="toggleTheme()">
+          <svg
+            id="theme-icon"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="5"></circle>
+            <path
+              d="M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"
+            ></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Upload Section -->
+      <div class="card">
+        <div class="grid grid-cols-2">
+          <!-- File Upload -->
+          <div>
+            <label class="label">PDF FILE</label>
+            <div
+              class="file-upload"
+              onclick="document.getElementById('fileInput').click()"
+            >
+              <input
+                type="file"
+                id="fileInput"
+                class="file-input"
+                accept=".pdf"
+                onchange="handleFileUpload(event)"
+              />
+              <svg
+                width="48"
+                height="48"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                style="margin: 0 auto 0.5rem auto; opacity: 0.6"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7,10 12,15 17,10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <div id="fileStatus">
+                <p style="font-weight: 500">Choose File or Drag & Drop</p>
+                <p style="font-size: 0.875rem; opacity: 0.7">PDF files only</p>
+              </div>
             </div>
-            <button class="theme-toggle" onclick="toggleTheme()">
-                <svg id="theme-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="5"></circle>
-                    <path d="M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"></path>
-                </svg>
-            </button>
+
+            <!-- Topic Badges Section -->
+            <label class="label" style="margin-top: 1rem">TOPICS</label>
+            <div class="topic-badges-container">
+              No topics added yet. Extract them!
+            </div>
+          </div>
+
+          <!-- Settings -->
+          <div style="display: flex; flex-direction: column; gap: 1rem">
+            <div class="form-group">
+              <label class="label">NUMBER OF QUESTIONS</label>
+              <input
+                type="number"
+                id="numQuestions"
+                class="input"
+                min="1"
+                max="20"
+                value="5"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="label">DIFFICULTY LEVEL</label>
+              <select id="difficulty" class="select">
+                <option value="Easy">Easy</option>
+                <option value="Medium" selected>Medium</option>
+                <option value="Hard">Hard</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="label">TOPIC(S)</label>
+              <input
+                type="text"
+                id="topics"
+                class="input"
+                value="All"
+                placeholder="All or specific topics"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="label">AI PROVIDER</label>
+              <select id="provider" name="provider" class="select">
+                <option value="gemini" selected>Gemini</option>
+                <option value="ollama_mistral">Ollama Mistral</option>
+              </select>
+            </div>
+          </div>
         </div>
 
-        <!-- Upload Section -->
-        <div class="card">
-            <div class="grid grid-cols-2">
-                <!-- File Upload -->
-                <div>
-                    <label class="label">PDF FILE</label>
-                    <div class="file-upload" onclick="document.getElementById('fileInput').click()">
-                        <input type="file" id="fileInput" class="file-input" accept=".pdf" onchange="handleFileUpload(event)">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto 0.5rem auto; opacity: 0.6;">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="7,10 12,15 17,10"></polyline>
-                            <line x1="12" y1="15" x2="12" y2="3"></line>
-                        </svg>
-                        <div id="fileStatus">
-                            <p style="font-weight: 500;">Choose File or Drag & Drop</p>
-                            <p style="font-size: 0.875rem; opacity: 0.7;">PDF files only</p>
-                        </div>
-                    </div>
+        <button
+          id="generateBtn"
+          class="btn btn-primary btn-full mt-6"
+          onclick="generateMCQs()"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-tags-icon lucide-tags"
+          >
+            <path
+              d="M13.172 2a2 2 0 0 1 1.414.586l6.71 6.71a2.4 2.4 0 0 1 0 3.408l-4.592 4.592a2.4 2.4 0 0 1-3.408 0l-6.71-6.71A2 2 0 0 1 6 9.172V3a1 1 0 0 1 1-1z"
+            />
+            <path
+              d="M2 7v6.172a2 2 0 0 0 .586 1.414l6.71 6.71a2.4 2.4 0 0 0 3.191.193"
+            />
+            <circle cx="10.5" cy="6.5" r=".5" fill="currentColor" />
+          </svg>
+          EXTRACT TOPICS
+        </button>
+      </div>
 
-                    <!-- Topic Badges Section -->
-                    <label class="label" style="margin-top: 1rem;">TOPICS</label>
-                    <div class="topic-badges-container">
-                        No topics added yet. Extract them!
-                    </div>
-                </div>
-
-                <!-- Settings -->
-                <div style="display: flex; flex-direction: column; gap: 1rem;">
-                    <div class="form-group">
-                        <label class="label">NUMBER OF QUESTIONS</label>
-                        <input type="number" id="numQuestions" class="input" min="1" max="20" value="5">
-                    </div>
-
-                    <div class="form-group">
-                        <label class="label">DIFFICULTY LEVEL</label>
-                        <select id="difficulty" class="select">
-                            <option value="Easy">Easy</option>
-                            <option value="Medium" selected>Medium</option>
-                            <option value="Hard">Hard</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="label">TOPIC(S)</label>
-                        <input type="text" id="topics" class="input" value="All" placeholder="All or specific topics">
-                    </div>
-
-                    
-                        <div class="form-group">
-                            <label class="label">AI PROVIDER</label>
-                            <select id="provider" name="provider" class="select">
-                                <option value="gemini" selected>Gemini</option>
-                                <option value="ollama_mistral">Ollama Mistral</option>
-                            </select>
-                        </div>
-                </div>
-            </div>
-
-            <button id="generateBtn" class="btn btn-primary btn-full mt-6" onclick="generateMCQs()">
-		<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-tags-icon lucide-tags">
-            <path d="M13.172 2a2 2 0 0 1 1.414.586l6.71 6.71a2.4 2.4 0 0 1 0 3.408l-4.592 4.592a2.4 2.4 0 0 1-3.408 0l-6.71-6.71A2 2 0 0 1 6 9.172V3a1 1 0 0 1 1-1z"/>
-            <path d="M2 7v6.172a2 2 0 0 0 .586 1.414l6.71 6.71a2.4 2.4 0 0 0 3.191.193"/><circle cx="10.5" cy="6.5" r=".5" fill="currentColor"/>
-        </svg>
-                EXTRACT TOPICS
-            </button>
+      <!-- Results Section -->
+      <div id="resultsSection" class="card hidden">
+        <!-- Tab Navigation -->
+        <div class="tabs">
+          <div class="tab active" onclick="switchTab('mcqs')">
+            MCQs (<span id="mcqCount">0</span>)
+          </div>
+          <div class="tab" onclick="switchTab('summary')">Summary</div>
+          <div class="tab" onclick="switchTab('history')">Question Bank</div>
+          <!-- New -->
         </div>
 
-        <!-- Results Section -->
-        <div id="resultsSection" class="card hidden">
-            <!-- Tab Navigation -->
-           <div class="tabs">
-            <div class="tab active" onclick="switchTab('mcqs')">
-                MCQs (<span id="mcqCount">0</span>)
+        <!-- MCQs Tab -->
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+          <div class="action-buttons-left">
+            <button
+              id="download-pdf"
+              class="action-btn download-pdf-btn"
+              onclick="downloadFile('pdf')"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="lucide lucide-download-icon lucide-download"
+              >
+                <path d="M12 15V3" />
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <path d="m7 10 5 5 5-5" />
+              </svg>
+              <span>Download PDF</span>
+            </button>
+            <button
+              id="download-txt"
+              class="action-btn download-txt-btn"
+              onclick="downloadFile('txt')"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="lucide lucide-download-icon lucide-download"
+              >
+                <path d="M12 15V3" />
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <path d="m7 10 5 5 5-5" />
+              </svg>
+              <span>Download TXT</span>
+            </button>
+          </div>
+          <div class="action-buttons-right">
+            <div class="stopwatch">
+              <div id="display">00:00:00</div>
             </div>
-            <div class="tab" onclick="switchTab('summary')">Summary</div>
-            <div class="tab" onclick="switchTab('history')">Question Bank</div> <!-- New -->
+            <button class="action-btn delete-btn" onclick="deleteMCQs()">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="lucide lucide-trash-2"
+              >
+                <path d="M3 6h18" />
+                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                <line x1="10" y1="11" x2="10" y2="17" />
+                <line x1="14" y1="11" x2="14" y2="17" />
+              </svg>
+              <span>Delete</span>
+            </button>
+          </div>
+        </div>
+
+        <script>
+          function downloadFile(type) {
+            window.location.href = `/download/${type}`;
+          }
+        </script>
+
+        <div id="mcqsTab" class="mcq-container active">
+          <div id="resultsCard" class="results-card hidden">
+            <h3
+              style="
+                font-size: 1.25rem;
+                font-weight: bold;
+                margin-bottom: 0.5rem;
+              "
+            >
+              Quiz Results
+            </h3>
+            <p
+              id="scoreText"
+              style="font-size: 1.125rem; margin-bottom: 0.75rem"
+            ></p>
+            <div class="quizresults-flex">
+                    <button class="btn btn-secondary" onclick="resetQuiz()">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="lucide lucide-rotate-ccw-icon lucide-rotate-ccw"
+              >
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 3v5h5" />
+              </svg>
+              Retake Quiz
+            </button>
+            <button
+              class="btn btn-secondary"
+              onclick="showAnalysisModal()"
+              action="/#analysisModal"
+              style="margin-top: 0.5rem"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="lucide lucide-bar-chart"
+              >
+                <line x1="12" y1="20" x2="12" y2="10"></line>
+                <line x1="18" y1="20" x2="18" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="16"></line>
+              </svg>
+              <a href="#analysisModal" style="color: white, text-decoration: none;">View Analysis </a>
+            </button>
             </div>
+            
+          </div>
 
+          <div id="mcqsList"></div>
 
-            <!-- MCQs Tab -->
+          <div id="submitSection" class="text-center mt-6 hidden">
+            <button class="btn btn-success" onclick="submitAnswers()">
+              Submit Answers
+            </button>
+          </div>
+        </div>
 
-            <!-- Action Buttons -->
-                <div class="action-buttons">
-		<div class="action-buttons-left">
-                    <button id="download-pdf" class="action-btn download-pdf-btn" onclick="downloadFile('pdf')">
-			<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download-icon lucide-download">
-		        	<path d="M12 15V3"/>
-				<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-				<path d="m7 10 5 5 5-5"/>
-			</svg>
-                        <span>Download PDF</span>
-                    </button>
-                    <button id="download-txt" class="action-btn download-txt-btn" onclick="downloadFile('txt')">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download-icon lucide-download">
-		        	<path d="M12 15V3"/>
-				<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-				<path d="m7 10 5 5 5-5"/>
-			</svg>
-                        <span>Download TXT</span>
-                    </button>
-		</div>
-		<div class="action-buttons-right">
-                    <div class="stopwatch">
-        		<div id="display">00:00:00</div>
-    		    </div>
-                    <button class="action-btn delete-btn" onclick="deleteMCQs()">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2">
-                            <path d="M3 6h18"/>
-                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-                            <line x1="10" y1="11" x2="10" y2="17"/>
-                            <line x1="14" y1="11" x2="14" y2="17"/>
-                        </svg>
-                        <span>Delete</span>
-                    </button>
-                </div>
-                </div>
-
-                <script>
-                function downloadFile(type) {
-                    window.location.href = `/download/${type}`;
-                }
-                </script>
-
-            <div id="mcqsTab" class="mcq-container active">
-                <div id="resultsCard" class="results-card hidden">
-                    <h3 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 0.5rem;">Quiz Results</h3>
-                    <p id="scoreText" style="font-size: 1.125rem; margin-bottom: 0.75rem;"></p>
-                    <button class="btn btn-secondary" onclick="resetQuiz()">Retake Quiz</button>
-                    <button class="btn btn-primary" id="viewAnalysisBtn" onclick="openAnalysisModal()" style="display:none">View Analysis</button>
-                </div>
-
-                <div id="mcqsList"></div>
-                
-
-                <div id="submitSection" class="text-center mt-6 hidden">
-                    <button class="btn btn-success" onclick="submitAnswers()">Submit Answers</button>
-                </div>
+        <!-- Summary Tab -->
+        <div id="summaryTab" class="mcq-container">
+          <div class="summary-content">
+            <div class="summary-header">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"
+                ></path>
+                <polyline points="14,2 14,8 20,8"></polyline>
+              </svg>
+              <h3 style="font-size: 1.25rem; font-weight: bold">
+                Document Summary
+              </h3>
             </div>
+            <p id="summaryText" class="summary-text"></p>
+            <button id="audio-toggle" class="btn btn-primary btn-full mt-6">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="lucide lucide-play-icon lucide-play"
+              >
+                <path
+                  d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"
+                />
+              </svg>
 
-            <!-- Summary Tab -->
-            <div id="summaryTab" class="mcq-container">
-                <div class="summary-content">
-                    <div class="summary-header">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
-                            <polyline points="14,2 14,8 20,8"></polyline>
-                        </svg>
-                        <h3 style="font-size: 1.25rem; font-weight: bold;">Document Summary</h3>
-                    </div>
-                    <p id="summaryText" class="summary-text"></p>
-                    <button id="audio-toggle" class="btn btn-primary btn-full mt-6">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-play-icon lucide-play"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/></svg>
+              Listen to Summary
+            </button>
+            <audio id="my-audio"></audio>
 
- Listen to Summary
-                        </button>
-                        <audio id="my-audio"></audio>
+            <script>
+              const audio = document.getElementById("my-audio");
+              const toggleBtn = document.getElementById("audio-toggle");
 
-
-
-<script>
-const audio = document.getElementById('my-audio');
-const toggleBtn = document.getElementById('audio-toggle');
-
-toggleBtn.addEventListener('click', () => {
-    if (audio.src == "http://localhost:5000/" || audio.src == "http://127.0.0.1:5000/") {
-        // If audio source is empty, set it to the static audio file
-	audio.src="{{ url_for('static', filename='audio.wav') }}"
-        audio.play();
-	toggleBtn.innerHTML = `
+              toggleBtn.addEventListener("click", () => {
+                if (
+                  audio.src == "http://localhost:5000/" ||
+                  audio.src == "http://127.0.0.1:5000/"
+                ) {
+                  // If audio source is empty, set it to the static audio file
+                  audio.src = "{{ url_for('static', filename='audio.wav') }}";
+                  audio.play();
+                  toggleBtn.innerHTML = `
 	<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pause-icon lucide-pause"><rect x="14" y="3" width="5" height="18" rx="1"/><rect x="5" y="3" width="5" height="18" rx="1"/></svg>
 	Pause Listening
-	`
-    } else if (audio.paused) {
-        audio.play();
-	toggleBtn.innerHTML = `
+	`;
+                } else if (audio.paused) {
+                  audio.play();
+                  toggleBtn.innerHTML = `
 	<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pause-icon lucide-pause"><rect x="14" y="3" width="5" height="18" rx="1"/><rect x="5" y="3" width="5" height="18" rx="1"/></svg>
 	Pause Listening
-	`
-    } else {
-        audio.pause();
-	toggleBtn.innerHTML = `
+	`;
+                } else {
+                  audio.pause();
+                  toggleBtn.innerHTML = `
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-play-icon lucide-play"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"></path></svg>
  	Listen to Summary
-	`
-    }
-    
-});
-</script>
-
-
-                </div>
-            </div>
-            <div id="historyTab" class="mcq-container">
-            <div id="historyList"></div>
+	`;
+                }
+              });
+            </script>
+          </div>
         </div>
-
+        <div id="historyTab" class="mcq-container">
+          <div id="historyList"></div>
         </div>
+      </div>
+    </div>
+    <!-- Analysis Modal -->
+    <div id="analysisModal" class="modal">
+      <div class="modal-content">
+        <div class="card">
+          <span class="close" onclick="closeAnalysisModal()">&times;</span>
+          <h2 style="margin-bottom: 1rem">Quiz Analysis</h2>
+          <div id="analysisContainer">
+            <!-- Analysis content will be inserted here -->
+          </div>
+        </div>
+      </div>
     </div>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
-</body>
+  </body>
 </html>

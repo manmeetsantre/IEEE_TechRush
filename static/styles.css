@@ -418,6 +418,12 @@ body {
 .theme-dark .results-card {
     background-color: #374151;
 }
+.quizresults-flex{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
 
 .loading {
     display: inline-block;
@@ -639,3 +645,64 @@ body {
         /* Responsive */
         @media (max-width:900px){.grid-cols-2{grid-template-columns:1fr} .modal-grid{grid-template-columns:1fr} .modal-panel{height:92vh}}
 
+/* Analysis Modal Specific Styles */
+#analysisContainer {
+    padding: 1rem;
+}
+
+.chart-container {
+    margin: 1rem 0;
+    padding: 1rem;
+    border-radius: 0.5rem;
+}
+
+.theme-light .chart-container {
+    background-color: white;
+    border: 1px solid #e5e7eb;
+}
+
+.theme-dark .chart-container {
+    background-color: #374151;
+    border: 1px solid #4b5563;
+}
+
+.analysis-section {
+    margin-bottom: 1.5rem;
+}
+
+.analysis-section h3 {
+    margin-bottom: 0.5rem;
+    font-size: 1.125rem;
+}
+
+.analysis-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.stat-card {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    text-align: center;
+}
+
+.theme-light .stat-card {
+    background-color: #f3f4f6;
+}
+
+.theme-dark .stat-card {
+    background-color: #4b5563;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    opacity: 0.8;
+}

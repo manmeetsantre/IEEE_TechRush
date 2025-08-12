@@ -1,4 +1,3 @@
-
         // Application state
         let currentFile = null;
         let mcqs = [];
@@ -11,8 +10,99 @@
         const elements = {
             downloadPdf: document.getElementById('downloadPdf'),
             downloadTxt: document.getElementById('downloadTxt'),
-            toggleAnswers: document.getElementById('toggleAnswers')
+            toggleAnswers: document.getElementById('toggleAnswers'),
+            analysisModal: document.getElementById('analysisModal')
         };
+
+        function showAnalysisModal() {
+    elements.analysisModal.style.display = 'block';
+    renderQuizAnalysis();
+}
+
+function closeAnalysisModal() {
+    elements.analysisModal.style.display = 'none';
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    if (event.target === elements.analysisModal) {
+        closeAnalysisModal();
+    }
+};
+
+function renderQuizAnalysis() {
+    if (!mcqs.length) return;
+    
+    const container = document.getElementById('analysisContainer');
+    const score = calculateScore();
+    const percentage = Math.round((score / mcqs.length) * 100);
+    
+    // Group by topic for topic analysis
+    const topicStats = {};
+    mcqs.forEach(mcq => {
+        const topic = mcq.topic || 'General';
+        if (!topicStats[topic]) {
+            topicStats[topic] = { total: 0, correct: 0 };
+        }
+        topicStats[topic].total++;
+        if (selectedAnswers[mcq.id] === mcq.correctAnswer) {
+            topicStats[topic].correct++;
+        }
+    });
+    
+    // Time spent calculation (mock data for now)
+    const timeSpent = mcqs.length * 30; // Assuming 30 seconds per question
+    
+    // Create analysis HTML
+    container.innerHTML = `
+        <div class="analysis-section">
+            <h3>Overall Performance</h3>
+            <div class="analysis-stats">
+                <div class="stat-card">
+                    <div class="stat-value">${score}/${mcqs.length}</div>
+                    <div class="stat-label">Questions Correct</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${percentage}%</div>
+                    <div class="stat-label">Accuracy</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${timeSpent}s</div>
+                    <div class="stat-label">Time Spent</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${Math.round(timeSpent/mcqs.length)}s</div>
+                    <div class="stat-label">Avg Time per Q</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="analysis-section">
+            <h3>Performance by Topic</h3>
+            ${Object.entries(topicStats).map(([topic, stats]) => `
+                <div style="margin-bottom: 1rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                        <span>${topic}</span>
+                        <span>${stats.correct}/${stats.total} (${Math.round((stats.correct/stats.total)*100)}%)</span>
+                    </div>
+                    <div style="height: 8px; background-color: ${currentTheme === 'dark' ? '#4b5563' : '#e5e7eb'}; border-radius: 4px;">
+                        <div style="width: ${(stats.correct/stats.total)*100}%; height: 100%; background-color: ${currentTheme === 'dark' ? '#60a5fa' : '#3b82f6'}; border-radius: 4px;"></div>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+        
+        <div class="analysis-section">
+            <h3>Question Difficulty</h3>
+            <div style="display: flex; justify-content: center; align-items: center; height: 150px;">
+                <div style="text-align: center;">
+                    <p style="opacity: 0.8;">Coming soon with more data</p>
+                    <small>We'll track difficulty levels over time</small>
+                </div>
+            </div>
+        </div>
+    `;
+}
 
         // Theme toggle
         function toggleTheme() {
