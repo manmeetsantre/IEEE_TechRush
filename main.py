@@ -21,11 +21,14 @@ import string
 import wave
 from piper import PiperVoice
 from bs4 import BeautifulSoup
+import re
+
 STATIC_FOLDER = os.path.join(os.path.dirname(__file__), 'static')
 load_dotenv()
 
 latest_summary = ""
 latest_mcqs = ""
+topicsExtracted = False # to keep track of topic extraction state
 
 app = Flask(__name__, template_folder='templates')
 CORS(app)  # allows requests from other origins (frontend)
@@ -35,13 +38,41 @@ genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 gemini_model = genai.GenerativeModel('gemini-2.0-flash')
 voice = PiperVoice.load("en_US-lessac-high.onnx")
 
-# generates a random string (used for unique IDs if needed)
-def generate_random_string(length=10):
-    return ''.join(random.choices(string.ascii_lowercase, k=length))
+def generate_with_ollama(prompt):
+    try:
+        url = "http://localhost:11434/api/generate"
+        print("Generating with Mistral (Ollama)...")
 
+        payload = {
+            "model": "mistral",
+            "prompt": prompt,
+            "stream": False
+        }
+        response = requests.post(url, json=payload)
+        response.raise_for_status()
+
+        data = response.json()
+        return data.get("response", "").strip()
+
+    except Exception as e:
+        print(f"Ollama connection error: {e}")
+        return None
+
+def generate_with_gemini(prompt):
+    try:
+        print("Generating with Gemini...")
+        response = gemini_model.generate_content(
+            contents=prompt,
+            generation_config={'response_mime_type': 'application/json'}
+        )
+        return response.text.strip()
+    except Exception as e:
+        print(f"Gemini error: {e}")
+        return None
+ 
 @app.route('/', methods=['POST', 'GET'])
 def home():
-    global latest_summary, latest_mcqs
+    global latest_summary, latest_mcqs, topicsExtracted
     if request.method == 'POST':
         start_time = time.time()
 
@@ -50,7 +81,8 @@ def home():
         count = int(request.form.get('question_count', 5))
         difficulty = request.form.get('difficulty', 'Medium')
         chapter = request.form.get('chapter', 'All')
-        
+        provider = request.form.get('provider', 'gemini')
+
         if not pdf_file:
             return jsonify({"error": "No PDF file provided"}), 400
 
@@ -58,46 +90,57 @@ def home():
         extract_start = time.time()
         text, method = extract_text_from_pdf(pdf_file)
         extract_time = time.time() - extract_start
-        print(f"Extraction took {extract_time} seconds.")
+        print(f"Extraction took {extract_time} seconds")
         
         if not text.strip():
             return jsonify({"error": "No text extracted from PDF"}), 400
 
-        # generate summary
-        summary_start = time.time()
-        summarized_text = summary(text)
-        summary_time = time.time() - summary_start
-        print(f"Summarization took {summary_time} seconds")
+        # run based on whether topics have been extracted
+        if not topicsExtracted:
+            topicsExtracted = True
+            topic_extraction_start = time.time()
+            topics = topic_extraction(text)
+            topic_extraction_time = time.time() - topic_extraction_start
+            print(f"Topic extraction took {topic_extraction_time} seconds")
+            return jsonify({"topics": topics})
+        else:
+            topicsExtracted = False
+            # generate summary
+            summary_start = time.time()
+            summarized_text = summary(text)
+            summary_time = time.time() - summary_start
+            print(f"Summarization took {summary_time} seconds")
 
-        # generate MCQs
-        mcq_start = time.time()
-        mcqs = generate_mcqs(text, count=count, difficulty=difficulty, chapter=chapter)
-        mcq_time = time.time() - mcq_start
-        print(f"MCQ generation took {mcq_time} seconds")
+            # generate MCQs
+            mcq_start = time.time()
+            mcqs = generate_mcqs(text, count=count, difficulty=difficulty, chapter=chapter, provider=provider)
+            mcq_time = time.time() - mcq_start
+            print(f"MCQ generation took {mcq_time} seconds")
 
-        total_time = time.time() - start_time
+            total_time = time.time() - start_time
 
-        latest_summary = summarized_text
-        latest_mcqs = mcqs
+            latest_summary = summarized_text
+            latest_mcqs = mcqs
 
-        # send final response
-        return jsonify({
-            "summary": summarized_text,
-            "mcqs": mcqs,
-            "metadata": {
-                "chapter": chapter,
-                "difficulty": difficulty,
-                "question_count": count,
-                "extraction_method": method
-            },
-            "timing": {
-                "extraction_time": f"{extract_time:.2f}s",
-                "summary_time": f"{summary_time:.2f}s",
-                "mcq_time": f"{mcq_time:.2f}s",
-                "total_time": f"{total_time:.2f}s"
-            }
-        })
-    
+            # send final response
+            return jsonify({
+                "summary": summarized_text,
+                "mcqs": mcqs,
+                "metadata": {
+                    "chapter": chapter,
+                    "difficulty": difficulty,
+                    "question_count": count,
+                    "extraction_method": method,
+                    "provider": provider
+                },
+                "timing": {
+                    "extraction_time": f"{extract_time:.2f}s",
+                    "summary_time": f"{summary_time:.2f}s",
+                    "mcq_time": f"{mcq_time:.2f}s",
+                    "total_time": f"{total_time:.2f}s"
+                }
+            })
+
     return render_template('index.html')
 
 @app.route('/download/pdf', methods=['GET'])
@@ -186,7 +229,7 @@ def extract_text_from_pdf(pdf_file):
             page_text = page.extract_text()
             if page_text:
                 text += page_text
-        if len(text.strip()) > 100:
+        if len(text.strip())/len(reader.pages) > 50:
             print("[INFO] Used pypdf for text extraction.")
             return text, "pypdf"
     except Exception as e:
@@ -200,6 +243,31 @@ def extract_text_from_pdf(pdf_file):
         text += pytesseract.image_to_string(image)
     return text, "ocr"
 
+def topic_extraction(text):
+    prompt = f"""You are tasked with summarizing educational content. Identify up to 5 key educational themes from the provided text. 
+    Guidelines:
+
+    Each theme should be a concise noun phrase (maximum 3 words, maximum 20 characters).
+    No explanations, examples, quotes, or brackets.
+    Avoid vague terms (e.g., "things", "concepts", "nature").
+    Ensure no repetition or chapter titles.
+
+Output format (JSON array of strings):
+[
+"Topic A",
+"Topic B"
+...
+]
+
+Text:
+"{text}"
+"""
+    response_topics = gemini_model.generate_content(
+            contents=prompt,
+            generation_config={'response_mime_type': 'application/json'}
+    )
+    return response_topics.text
+
 # sends summary request to local Mistral (Ollama) API
 def summary(text):
     prompt = f"Please create the summary for following text: {text}.\nDirectly begin with summary. Make it readable by a common user, making the PDF simple to understand. You can also use markdown to make it visually appealing. However make sure it remains formal in nature, do not be too casual/informal. Also make sure the summary is concise, do not make it too long. Make sure to retain the language of the text. That is, if the text is in Hindi, keep your response in Hindi too. Try to use markdown as much as possible. Use formatting techniques like giving proper heading format to title, bullet points, etc. to make it look visually appealing."
@@ -211,7 +279,7 @@ def summary(text):
     return response_text
 
 # uses Gemini to generate MCQs in JSON format
-def generate_mcqs(text, count, difficulty, chapter):
+def generate_mcqs(text, count, difficulty, chapter, provider):
     batch_size = 100
     final_response = ""
 
@@ -220,6 +288,8 @@ def generate_mcqs(text, count, difficulty, chapter):
         batch_count = min(batch_size, count - i)
 
         # detailed instruction to force Gemini to return pure JSON
+        error_messages = []
+        mcqs = []
         prompt = f"""
 Create {batch_count} multiple choice questions based on this text extracted from PDF:\n\n{text}
 Requirements:
@@ -250,12 +320,77 @@ Requirements:
 ]
 PLEASE PLEASE PLEASE MAKE IT IN JSON ONLY. DO NOT GIVE ANY EXTRA TEXT IN THE BEGINNING OR IN THE END. I HAVE TO PARSE THE JSON THAT IS GIVEN BY YOU FURTHER. SO PLEASE ONLY GIVE JSON. PLEASE GIVE JSON ONLY. GIVE JSON FORMAT ONLY. DO NOT WRITE ANYTHING ELSE. DO NOT PUT NEWLINES OR ANYTHING WHICH IS NOT IN JSON FORMAT."""
 
-        response_mcqs = gemini_model.generate_content(
-            contents=prompt,
-            generation_config={'response_mime_type': 'application/json'}
-        )
+    print(f"Prompt length: {len(prompt)} characters")
+    
+    try:
+        print(f"Using provider: {provider}")
+        if provider.startswith('ollama'):
+            response_text = generate_with_ollama(prompt)
+        else:  # Default to Gemini
+            response_text = generate_with_gemini(prompt)
+            
+        if not response_text:
+            error_messages.append("Provider returned empty response")
+            return json.dumps([])
+            
+        print(f"Raw response ({len(response_text)} chars): {response_text[:200]}...")
 
-        final_response += response_mcqs.text
+        # Clean response - remove markdown code blocks
+        if response_text.startswith("```json"):
+            response_text = response_text[7:]
+        if response_text.endswith("```"):
+            response_text = response_text[:-3]
+        
+        # Remove any text outside JSON brackets
+        json_match = re.search(r'\[.*\]', response_text, re.DOTALL)
+        if json_match:
+            response_text = json_match.group(0)
+            
+        # Try direct JSON parse
+        try:
+            mcqs = json.loads(response_text)
+            if not isinstance(mcqs, list):
+                error_messages.append("Response is not a JSON array")
+                mcqs = []
+        except json.JSONDecodeError as e:
+            error_messages.append(f"JSON parse error: {e}")
+            print(f"Invalid JSON: {response_text[:500]}")
+            
+    except Exception as e:
+        error_messages.append(f"Unexpected error: {e}")
+        print(f"Exception: {str(e)}")
+    
+    # Validate and add IDs to MCQs
+    valid_mcqs = []
+    for idx, mcq in enumerate(mcqs):
+        if not isinstance(mcq, dict):
+            continue
+            
+        # Ensure all required fields exist
+        required_keys = ['question', 'options', 'correctAnswer', 'explanation']
+        if all(key in mcq for key in required_keys):
+            mcq['id'] = idx + 1
+            
+            # Ensure correctAnswer is integer
+            if isinstance(mcq['correctAnswer'], str):
+                try:
+                    mcq['correctAnswer'] = int(mcq['correctAnswer'])
+                except ValueError:
+                    mcq['correctAnswer'] = 0
+            
+            if 'topic' not in mcq or not str(mcq['topic']).strip():
+                mcq['topic'] = chapter
+                
+            valid_mcqs.append(mcq)
+    
+    # If we got fewer questions than requested
+    if len(valid_mcqs) < count:
+        error_messages.append(f"Only got {len(valid_mcqs)}/{count} valid MCQs")
+    
+    if error_messages:
+        print(f"MCQ generation completed with errors: {', '.join(error_messages)}")
+    
+    return json.dumps(valid_mcqs)
 
     # load and clean up final JSON output
     final_response_json = json.loads(final_response)

@@ -28,7 +28,7 @@ load_dotenv()
 
 latest_summary = ""
 latest_mcqs = ""
-topicExtracted = False # to keep track of topic extraction state
+topicsExtracted = False # to keep track of topic extraction state
 
 app = Flask(__name__, template_folder='templates')
 CORS(app)  # allows requests from other origins (frontend)
@@ -72,7 +72,7 @@ def generate_with_gemini(prompt):
  
 @app.route('/', methods=['POST', 'GET'])
 def home():
-    global latest_summary, latest_mcqs, topicExtracted
+    global latest_summary, latest_mcqs, topicsExtracted
     if request.method == 'POST':
         start_time = time.time()
 
@@ -96,14 +96,15 @@ def home():
             return jsonify({"error": "No text extracted from PDF"}), 400
 
         # run based on whether topics have been extracted
-        if not topicExtracted:
+        if not topicsExtracted:
+            topicsExtracted = True
             topic_extraction_start = time.time()
             topics = topic_extraction(text)
             topic_extraction_time = time.time() - topic_extraction_start
             print(f"Topic extraction took {topic_extraction_time} seconds")
-            topicExtracted = True
             return jsonify({"topics": topics})
         else:
+            topicsExtracted = False
             # generate summary
             summary_start = time.time()
             summarized_text = summary(text)
@@ -120,7 +121,6 @@ def home():
 
             latest_summary = summarized_text
             latest_mcqs = mcqs
-            topicExtracted = False
 
             # send final response
             return jsonify({
@@ -270,7 +270,6 @@ Text:
 
 # sends summary request to local Mistral (Ollama) API
 def summary(text):
-    prompt = f"Please create the summary for following text: {text}.\nDirectly begin with summary. Make it readable by a common user, making the PDF simple to understand. You can also use markdown to make it visually appealing. However make sure it remains formal in nature, do not be too casual/informal. Also make sure the summary is concise, do not make it too long. Make sure to retain the language of the text. That is, if the text is in Hindi, keep your response in Hindi too. Try to use markdown as much as possible. Use formatting techniques like giving proper heading format to title, bullet points, etc. to make it look visually appealing."
     headers = {
         'Content-Type': 'application/x-www-form-urlencoded',
     }
