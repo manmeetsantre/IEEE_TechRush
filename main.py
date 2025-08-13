@@ -86,6 +86,7 @@ def home():
         difficulty = request.form.get('difficulty', 'Medium')
         topic = request.form.get('topic', 'All')
         provider = request.form.get('provider', 'gemini')
+        mcqType = request.form.get('mcqType', 'mcq')
 
         if not pdf_file:
             return jsonify({"error": "No PDF file provided"}), 400
@@ -117,7 +118,7 @@ def home():
 
             # generate MCQs
             mcq_start = time.time()
-            mcqs = generate_mcqs(text, count=count, difficulty=difficulty, topic=topic, provider=provider)
+            mcqs = generate_mcqs(text, count=count, difficulty=difficulty, topic=topic, provider=provider, mcqType=mcqType)
             mcq_time = time.time() - mcq_start
             print(f"MCQ generation took {mcq_time} seconds")
 
@@ -135,7 +136,8 @@ def home():
                     "difficulty": difficulty,
                     "question_count": count,
                     "extraction_method": method,
-                    "provider": provider
+                    "provider": provider,
+                    "mcqType": mcqType
                 },
                 "timing": {
                     "extraction_time": f"{extract_time:.2f}s",
@@ -292,7 +294,7 @@ def summary(text):
     return response_text
 
 # uses Gemini to generate MCQs in JSON format
-def generate_mcqs(text, count, difficulty, topic, provider):
+def generate_mcqs(text, count, difficulty, topic, provider, mcqType):
     batch_size = 100
     final_response = ""
 
@@ -303,31 +305,73 @@ def generate_mcqs(text, count, difficulty, topic, provider):
         # detailed instruction to force Gemini to return pure JSON
         error_messages = []
         mcqs = []
+        specificPrompt = ""
+        match mcqType:
+            case "mcq":
+                print("[INFO] Making single correct answer questions")
+                specificPrompt = f"""
+                The question asks for multiple choice questions, with one correct answer.
+                There must be only one correct answer.
+                There must be in total 4 options, and the correctAnswer parameter in JSON must be from 0-3.
+                The format must be in JSON, as specified below:
+                [
+                    {{
+                        "question": "question here",
+                        "options": ["option1", "option2", "option3", "option4"],
+                        "correctAnswer": "number of answer which is correct, that is, from 0 to 3. make sure to start from 0.",
+                        "explanation": "explanation why correctAnswer is correct",
+                        "topic": "relevant topic that the question belongs to"
+                    }},
+                    ...
+                ]
+                """
+            case "fib":
+                print("[INFO] Making fill in the blanks questions")
+                specificPrompt = f"""
+                The question asks for fill in the blank questions, with one correct answer.
+                There must be only one correct answer.
+                There must be in total 4 options, and the correctAnswer parameter in JSON must be from 0-3.
+                The format must be in JSON, as specified below:
+                [
+                    {{
+                        "question": "Question here. The question must include the field '________' which indicates the blank. The question must have this."
+                        "options": ["option1", "option2", "option3", "option4"],
+                        "correctAnswer": "number of answer which is correct, that is, from 0 to 3. make sure to start from 0.",
+                        "explanation": "explanation why correctAnswer is correct",
+                        "topic": "relevant topic that the question belongs to"
+                    }},
+                    ...
+                ]
+                """
+            case "trueFalse":
+                print("[INFO] Making true false type questions")
+                specificPrompt = f"""
+                The question asks for true false type questions, with one correct answer.
+                There must be only one correct answer.
+                The correct answer must be either True or False.
+                There must be only and only 2 options, which will be 'True' and 'False'. There must strictly be only 2 options.
+                The correctAnswer field of JSON must be labelled by numbers, that is, 0 and 1. True will be 0, False will be 1.
+                The format must be in JSON, as specified below:
+                [
+                    {{
+                        "question": "question here"
+                        "options": ["True", "False"]
+                        "correctAnswer": "number of answer which is correct, that is, from 0 to 1. make sure to start from 0.",
+                        "explanation": "explanation why correctAnswer is correct",
+                        "topic": "relevant topic that the question belongs to"
+                    }},
+                    ...
+                ]
+                """
         prompt = f"""
-Create {batch_count} multiple choice questions based on this text extracted from PDF:\n\n{text}
+Create {batch_count} questions based on this text extracted from PDF:\n\n{text}
 Requirements:
-- difficulty: {difficulty}
+- difficulty: The topic must have {difficulty} level of difficulty
 - topics: {topic}
 - each question must have:
   * clear question stem
-  * correct answer (specify the number, that is, 0-3)
   * concise explanation
-  * difficulty rating
   * topic tag
-  * create mcqs of single answer and true false type questions.
-  * also create fill in the blanks type questions and match the following type questions.
-  *  for single correct questions or other questions,  give 
-  "question type": "single_correct" or "true_false" or "fill_in_the_blanks" or "match_the_following" for this 
-  this should be the starting of the question. 
-- format the output as a JSON array of objects, each with:
-- "question": the question text
-- "options": an array of 4 options (A, B, C, D)
-- "correctAnswer": index of the correct option (0-3)
-- "explanation": why the correct answer is correct
-- "topic": relevant topic that the question belongs to
-- "question type": the type of question, which can be "single_correct", "true_false", "fill_in_the_blanks", or "match_the_following"
-  * Only one of the 4 options should be correct
-- Every question must have 4 options (A, B, C, D) in the JSON "options" field
 - Make sure to preserve the language of the original PDF text (e.g., Hindi stays Hindi)
 - If topic = 'All', you can choose appropriate topics yourself, but do not set every topic as "All"
 - Final output must be in pure JSON format:
@@ -337,17 +381,8 @@ Requirements:
 - make sure that the generated topics are as given above, that is, the generated questions must belong to topics: {topic}
 - the only exception to the above rule is when the given topic {topic} is 'All', in which case you can craft your own topics.
 - If {topic} is equal to 'All', then you must craft your own topics. Do not make every question's topic as All.
-- the format must be in json, as specified below:
-[
-    {{
-        "question": "question here",
-        "options": ["option1", "option2", "option3", "option4"],
-        "correctAnswer": "number of answer which is correct, that is, from 0 to 3. make sure to start from 0.",
-        "explanation": "explanation why correctAnswer is correct",
-        "topic": "relevant topic that the question belongs to"
-    }},
-    ...
-]
+- The user has given you the task of creating a certain type of question. Follow the following rules:\n{specificPrompt}
+
 PLEASE PLEASE PLEASE MAKE IT IN JSON ONLY. DO NOT GIVE ANY EXTRA TEXT IN THE BEGINNING OR IN THE END. I HAVE TO PARSE THE JSON THAT IS GIVEN BY YOU FURTHER. SO PLEASE ONLY GIVE JSON. PLEASE GIVE JSON ONLY. GIVE JSON FORMAT ONLY. DO NOT WRITE ANYTHING ELSE. DO NOT PUT NEWLINES OR ANYTHING WHICH IS NOT IN JSON FORMAT."""
 
     print(f"Prompt length: {len(prompt)} characters")

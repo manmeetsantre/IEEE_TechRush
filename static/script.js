@@ -198,6 +198,7 @@ function renderQuizAnalysis() {
                 formData.append('topic', document.getElementById('topics').value);
                 formData.append('provider', document.getElementById('provider').value);
                 formData.append('topicsExtracted', topicsExtracted);
+		formData.append('mcqType', document.getElementById('mcqType').value);
 
                 // Replace with your Flask backend URL
                 const response = await fetch('http://localhost:5000/' || 'http://127.0.0.1:5000/', {
