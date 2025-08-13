@@ -5,6 +5,7 @@
         let showResults = false;
         let currentTheme = 'dark';
         let topicsExtracted = false;
+	let mcqType = 'mcq';
 	    let selectedTopics = [];
 
         const elements = {
@@ -210,6 +211,7 @@ function renderQuizAnalysis() {
                     const data = await response.json();
                     if (topicsExtracted) {
                     mcqs = data.mcqs;
+		    mcqType = data.metadata.mcqType;
                     const summary = data.summary || '';
 
 		    if (typeof mcqs === "string") {
@@ -234,7 +236,6 @@ function renderQuizAnalysis() {
 		    startTimer();
                     topicsExtracted = false;
                 } else if (!topicsExtracted) {
-                    console.log(data.topics);
                     btn.children[0].outerHTML = `
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-tags-icon lucide-tags">
                         <path d="M13.172 2a2 2 0 0 1 1.414.586l6.71 6.71a2.4 2.4 0 0 1 0 3.408l-4.592 4.592a2.4 2.4 0 0 1-3.408 0l-6.71-6.71A2 2 0 0 1 6 9.172V3a1 1 0 0 1 1-1z"/>
@@ -404,13 +405,27 @@ function renderQuizAnalysis() {
         // Select answer
         function selectAnswer(questionId, answerIndex) {
             if (showResults) return;
-
-            selectedAnswers[questionId] = answerIndex;
+            if (mcqType == "msq") {
+                if (selectedAnswers[questionId]) {
+                    if (selectedAnswers[questionId].includes(answerIndex)) {
+                        selectedAnswers[questionId].splice(selectedAnswers[questionId].indexOf(answerIndex), 1);
+                    } else {
+                        selectedAnswers[questionId].push(answerIndex);
+                    }
+                } else {
+                    selectedAnswers[questionId] = [answerIndex];
+                }
+                updateOptionStyles(questionId, selectedAnswers[questionId]);
+            } else {
+                selectedAnswers[questionId] = answerIndex;
+                updateOptionStyles(questionId, answerIndex);
+            }
             updateOptionStyles(questionId, answerIndex);
             updateSubmitButton();
         }
 
         // Update option styles
+        // selectedIndex will be array of selected options in case of msq
         function updateOptionStyles(questionId, selectedIndex) {
             const mcq = mcqs.find(m => m.id === questionId);
             if (!mcq) return;
@@ -419,21 +434,36 @@ function renderQuizAnalysis() {
                 const option = document.getElementById(`option-${questionId}-${optionIndex}`);
                 const icon = document.getElementById(`icon-${questionId}-${optionIndex}`);
                 
-                option.classList.remove('selected', 'correct', 'incorrect');
-                icon.innerHTML = '';
+                if (mcqType != "msq") {
+                    option.classList.remove('selected', 'correct', 'incorrect');
+                }
+                    icon.innerHTML = '';
 
                 if (showResults) {
                     option.disabled = true;
-                    
-                    if (optionIndex === mcq.correctAnswer) {
-                        option.classList.add('correct');
-                        icon.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #16a34a;"><path d="M9 12l2 2 4-4"></path><circle cx="12" cy="12" r="9"></circle></svg>`;
-                    } else if (optionIndex === selectedIndex && optionIndex !== mcq.correctAnswer) {
-                        option.classList.add('incorrect');
-                        icon.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #dc2626;"><circle cx="12" cy="12" r="9"></circle><path d="m15 9-6 6"></path><path d="m9 9 6 6"></path></svg>`;
+                    if (mcqType != "msq") {
+                        if (optionIndex === mcq.correctAnswer) {
+                            option.classList.add('correct');
+                            icon.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #16a34a;"><path d="M9 12l2 2 4-4"></path><circle cx="12" cy="12" r="9"></circle></svg>`;
+                        } else if (optionIndex === selectedIndex && optionIndex !== mcq.correctAnswer) {
+                            option.classList.add('incorrect');
+                            icon.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #dc2626;"><circle cx="12" cy="12" r="9"></circle><path d="m15 9-6 6"></path><path d="m9 9 6 6"></path></svg>`;
+                        }
+                    }
+                    else {
+                        if (mcq.correctAnswer.includes(optionIndex.toString()) && selectedIndex.includes(optionIndex)) {
+                            option.classList.add('correct');
+                            icon.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #16a34a;"><path d="M9 12l2 2 4-4"></path><circle cx="12" cy="12" r="9"></circle></svg>`;
+                        } else if (mcq.correctAnswer.includes(optionIndex.toString()) && !selectedIndex.includes(optionIndex)) {
+                            option.classList.add('part-correct');
+                            icon.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #16a34a;"><path d="M9 12l2 2 4-4"></path><circle cx="12" cy="12" r="9"></circle></svg>`;
+                        } else if (selectedIndex.includes(optionIndex) && !mcq.correctAnswer.includes(optionIndex.toString())) {
+                            option.classList.add('incorrect');
+                            icon.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #dc2626;"><circle cx="12" cy="12" r="9"></circle><path d="m15 9-6 6"></path><path d="m9 9 6 6"></path></svg>`;
+                        }
                     }
                 } else if (optionIndex === selectedIndex) {
-                    option.classList.add('selected');
+                    option.classList.toggle("selected");
                 }
             });
         }

@@ -370,6 +370,12 @@ body {
     color: #166534;
 }
 
+.option.part-correct {
+    background-color: #dcfce7;
+    border-color: #16a34a;
+    color: #166534;
+}
+
 .option.incorrect {
     background-color: #fef2f2;
     border-color: #dc2626;

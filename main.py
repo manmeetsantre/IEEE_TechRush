@@ -286,6 +286,7 @@ Text:
 def summary(text):
     prompt = f"Please create the summary for following text: {text}.\nDirectly begin with summary. Make it readable by a common user, making the PDF simple to understand. You can also use markdown to make it visually appealing. However make sure it remains formal in nature, do not be too casual/informal. Also make sure the summary is concise, do not make it too long. Make sure to retain the language of the text. That is, if the text is in Hindi, keep your response in Hindi too. Try to use markdown as much as possible. Use formatting techniques like giving proper heading format to title, bullet points, etc. to make it look visually appealing."
     response_text = markdown(gemini_model.generate_content(contents=prompt).text)
+    print("Summarization done. Generating audio...")
     voice = hin_voice if ishindi(text) else eng_voice
     audio_path = os.path.join(STATIC_FOLDER, "audio.wav")
     with wave.open(audio_path, "wb") as wav_file:
@@ -318,7 +319,7 @@ def generate_mcqs(text, count, difficulty, topic, provider, mcqType):
                     {{
                         "question": "question here",
                         "options": ["option1", "option2", "option3", "option4"],
-                        "correctAnswer": "number of answer which is correct, that is, from 0 to 3. make sure to start from 0.",
+                        "correctAnswer": ["number of answer which is correct, that is, from 0 to 3. make sure to start from 0."],
                         "explanation": "explanation why correctAnswer is correct",
                         "topic": "relevant topic that the question belongs to"
                     }},
@@ -354,11 +355,42 @@ def generate_mcqs(text, count, difficulty, topic, provider, mcqType):
                 The format must be in JSON, as specified below:
                 [
                     {{
-                        "question": "question here"
-                        "options": ["True", "False"]
+                        "question": "question here",
+                        "options": ["True", "False"],
                         "correctAnswer": "number of answer which is correct, that is, from 0 to 1. make sure to start from 0.",
                         "explanation": "explanation why correctAnswer is correct",
                         "topic": "relevant topic that the question belongs to"
+                    }},
+                    ...
+                ]
+                """
+            case "msq":
+                print("[INFO] Making multiple answer correct questions")
+                specificPrompt = f"""
+                The question asks for multiple answer correct questions, with MORE THAN ONE correct answers.
+                There must be more than one correct answer.
+                There must be 4 options, out of which 2 OR more than 2 are correct.
+                The correctAnswer field of JSON must be an array of correct options. Each element in this array must be the number of answer which is correct, that is, from 0 to 3.
+                The format must be in JSON, as specified below:
+                [
+                    {{
+                        "question": "question here",
+                        "options": ["option1", "option2", "option3", "option4"],
+                        "correctAnswer": ["2", "3", "4"],
+                        "explanation": "explanation why the options given in correctAnswer are correct",
+                        "topic": "relevant topic that the question belongs to"
+                    }},
+                    ...
+                ]
+                In the format above, notice how correctAnswer field is an array of the number (index) of the options which are correct, that is, '2', '3' and '4'. You must make correctAnswer field as such an array, which contains elements as the number (index) of the options which are correct. The options must be numbers from 0-3. The options must NOT be the actual text content of the options.
+                Example:
+                [
+                    {{
+                        "question": "Which of the following are primary colors in the RGB color model?",
+                        "options": ["Red", "Blue", "Purple", "Green"],
+                        "correctAnswer": ["1", "2", "4"],
+                        "explanation": "In the RGB color model, the primary colors are Red, Green, and Blue. These are combined in various intensities to create other colors. Purple is not a primary color in this model.",
+                        "topic": "Color Theory"
                     }},
                     ...
                 ]
