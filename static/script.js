@@ -57,7 +57,7 @@ function renderQuizAnalysis() {
             topicStats[topic] = { total: 0, correct: 0 };
         }
         topicStats[topic].total++;
-        if (selectedAnswers[mcq.id] === mcq.correctAnswer) {
+        if (areArraysEqualSet(selectedAnswers[mcq.id].map(String), mcq.correctAnswer)) {
             topicStats[topic].correct++;
         }
     });
@@ -101,16 +101,6 @@ function renderQuizAnalysis() {
                     </div>
                 </div>
             `).join('')}
-        </div>
-        
-        <div class="analysis-section">
-            <h3>Question Difficulty</h3>
-            <div style="display: flex; justify-content: center; align-items: center; height: 150px;">
-                <div style="text-align: center;">
-                    <p style="opacity: 0.8;">Coming soon with more data</p>
-                    <small>We'll track difficulty levels over time</small>
-                </div>
-            </div>
         </div>
     `;
 }
@@ -507,11 +497,31 @@ function renderQuizAnalysis() {
             updateSubmitButton();
         }
 
+        function areArraysEqualSet(arr1, arr2) {
+            // Convert arrays to sets to remove duplicates
+            const set1 = new Set(arr1);
+            const set2 = new Set(arr2);
+
+            // If sets have different sizes, they can't be equal
+            if (set1.size !== set2.size) {
+                return false;
+            }
+
+            // Check if all elements of set1 are in set2
+            for (let item of set1) {
+                if (!set2.has(item)) {
+                return false;
+                }
+            }
+
+            return true;
+        }
+        
         // Calculate score
         function calculateScore() {
             let correct = 0;
             mcqs.forEach(mcq => {
-                if (selectedAnswers[mcq.id] === mcq.correctAnswer) {
+                if (areArraysEqualSet(selectedAnswers[mcq.id].map(String), mcq.correctAnswer)) {
                     correct++;
                 }
             });

@@ -371,9 +371,9 @@ body {
 }
 
 .option.part-correct {
-    background-color: #dcfce7;
+    background-color: #ffee69d6;
     border-color: #16a34a;
-    color: #166534;
+    color: #af7f23;
 }
 
 .option.incorrect {
